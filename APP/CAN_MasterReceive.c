@@ -1,0 +1,322 @@
+
+#include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "CAN.h"                // Your Tiva CAN driver header
+#include "UART/uart.h"         // For UART debug printing
+#include "can_msg_types.h"
+#include "CAN_MasterReceive.h"
+#include "CAN_App.h"
+#if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
+#include "app_conn.h"          // <-- If needed by your application
+#include "digital_key_car_anchor_cs.h"
+#include "shell_digital_key_car_anchor_cs.h"
+#include "shell_print.h"
+#endif
+
+// -----------------------------------------------------------------------------
+// Data structures mirroring your NXP-based variables
+// -----------------------------------------------------------------------------
+static CAN_tstrDistance    s_distanceData      = {0};
+static CAN_tstrCommandData s_commandData       = {CAN_COMMAND_INVALID, 0};
+static add_device          s_addDeviceData     = {0};
+static remove_device_t     s_removeDeviceData  = {0};
+static uint8_t             s_bondingDataCounter = 0;
+
+// Global variable for “parseHandoverData”
+uint8_t gNextAnchorId = 0;
+
+// -----------------------------------------------------------------------------
+// Local (static) function prototypes (similar to your parse* functions)
+// -----------------------------------------------------------------------------
+
+static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
+static void parseHandoverData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
+static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
+static void parseCommandData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
+
+
+/*
+    This handler replaces the NXP FlexCAN callback.
+    It checks which message object triggered the interrupt,
+    and then calls your parse function for received messages.
+*/
+
+
+//--------------------------------------------------------------------------------
+//CAN0_Handler (Interrupt Service Routine)
+//--------------------------------------------------------------------------------
+
+void CAN0_Handler(void)
+{
+    uint32_t ui32Status;
+
+    /*
+     * CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE) returns
+     * either:
+     *   - 0 if it’s a status or error interrupt, or
+     *   - The message object number (1..32) that triggered the interrupt.
+     */
+    ui32Status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
+
+    /* If ui32Status == 0, it means it’s a global status interrupt or error. */
+    if (ui32Status == 0)
+    {
+        /* Check for errors, bus-off, etc. */
+        uint32_t ctrlStatus = CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
+        // Handle or log errors/bus-off if needed...
+
+        /* Clear any global interrupt flags. */
+        CANIntClear(CAN0_BASE, ui32Status);
+        return;
+    }
+
+    /*
+     * If ui32Status == RX_MESSAGE_BUFFER_NUM (e.g., 5),
+     * we know a message arrived in that object.
+     * You can also check if ui32Status == your TX object for TX completions.
+     */
+
+    // Retrieve the message and parse it
+    tCANMsgObject rxMsg;
+    uint8_t rxData[8];
+
+    // Associate the data buffer with rxMsg
+    rxMsg.pui8MsgData = rxData;
+
+    // Get the incoming frame (true => clears the interrupt/status).
+    CANMessageGet(CAN0_BASE, MSG_OBJ_TX_1, &rxMsg, true);
+
+    // Now call your parse function, passing the already-read message.
+    CAN_voidParseReceivedFrame(&rxMsg, rxData);
+
+    // Finally, clear the interrupt for this message object.
+    CANIntClear(CAN0_BASE, ui32Status);
+}
+
+
+
+/*
+ * This function no longer calls CANMessageGet() because you already
+ * have the data in the handler. It simply parses the received message
+ * (rxMsg) and its data (rxData).
+ */
+
+void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
+{
+    // For a standard 11-bit ID, ui32MsgID is the direct ID (no shift needed).
+    uint32_t messageId = pRxMsg->ui32MsgID;
+
+    // Debug print
+    UART_SendMessage("CAN: Message Received\r\n");
+
+    // Dispatch to parse functions — match your original message IDs
+    switch (messageId)
+    {
+        case CAN_ID_DISTANCE:
+            parseDistanceData(pRxMsg, rxData);
+            break;
+
+        case CAN_ID_HANDOVER:
+            parseHandoverData(pRxMsg, rxData);
+            break;
+
+        case CAN_ID_BONDING_DATA:
+            parseBondingData(pRxMsg, rxData);
+            break;
+
+        case CAN_ID_COMMANDS:
+            parseCommandData(pRxMsg, rxData);
+            break;
+
+        default:
+        {
+            char msg[64];
+            snprintf(msg, sizeof(msg),
+                     "Received unknown message ID: 0x%03X\r\n",
+                     (unsigned)messageId);
+            UART_SendMessage(msg);
+            break;
+        }
+    }
+}
+
+
+// -----------------------------------------------------------------------------
+// Public “get” routines similar to your original code
+// -----------------------------------------------------------------------------
+CAN_tstrDistance CAN_structGetDistanceData(void)
+{
+    return s_distanceData;
+}
+
+CAN_tstrCommandData CAN_structGetLastCommandData(void)
+{
+    return s_commandData;
+}
+
+add_device CAN_structGetAddDeviceData(void)
+{
+    return s_addDeviceData;
+}
+
+remove_device_t CAN_structGetRemoveDeviceData(void)
+{
+    return s_removeDeviceData;
+}
+
+// -----------------------------------------------------------------------------
+// parseDistanceData (example of how to parse fields from rxData[])
+// -----------------------------------------------------------------------------
+static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
+{
+    // In NXP code: dataByte0..dataByte7 => Tiva: rxData[0..7]
+    // Example fields from your code:
+    s_distanceData.deviceId            = rxData[0];
+    s_distanceData.procNo              = (uint16_t)rxData[1] | ((uint16_t)rxData[2] << 8);
+    s_distanceData.distanceIntegerPart = rxData[3];
+    s_distanceData.distanceDecimalPart = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
+
+    // Convert DQI
+    uint16_t dqiRaw = (uint16_t)rxData[6] | ((uint16_t)rxData[7] << 8);
+    s_distanceData.dqiPercentage = (float)dqiRaw * 0.01f;
+
+    // Debug print
+    char msg[128];
+    snprintf(msg, sizeof(msg),
+        "\r\nCAN_ID_DISTANCE:\r\nDevID: %d, ProcNo: %d, Dist: %d.%d, DQI: %.2f%%\r\n",
+        s_distanceData.deviceId,
+        s_distanceData.procNo,
+        s_distanceData.distanceIntegerPart,
+        s_distanceData.distanceDecimalPart,
+        (double)s_distanceData.dqiPercentage
+    );
+    UART_SendMessage(msg);
+
+    // Potentially call other app-layer logic
+    // ...
+}
+
+// -----------------------------------------------------------------------------
+// parseHandoverData
+// -----------------------------------------------------------------------------
+static void parseHandoverData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
+{
+    // Example: device ID is in lower 4 bits
+    uint8_t receivedDeviceId = rxData[0] & 0x0F;
+    gNextAnchorId = rxData[1];
+
+    char msg[64];
+    snprintf(msg, sizeof(msg),
+             "Handover: DeviceID=%d, NextAnchor=%d\r\n",
+             receivedDeviceId, gNextAnchorId);
+    UART_SendMessage(msg);
+
+
+}
+
+// -----------------------------------------------------------------------------
+// parseBondingData
+// -----------------------------------------------------------------------------
+static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
+{
+    s_bondingDataCounter++;
+
+    switch (s_bondingDataCounter)
+    {
+        case 1:
+            // Fill s_addDeviceData from first chunk
+            s_addDeviceData.nvmIndex = (rxData[0] & 0x0F);
+            s_addDeviceData.bleDeviceAddress_t.idAddressType = (rxData[1] & 0x01);
+            s_addDeviceData.gAppOutAuth = ((rxData[1] >> 1) & 0x01);
+            s_addDeviceData.gAppOutLeSc = ((rxData[1] >> 2) & 0x01);
+            // Copy address (6 bytes)
+            memcpy(s_addDeviceData.bleDeviceAddress_t.idAddress, &rxData[2], 6);
+            break;
+
+        case 2:
+            // Next 8 bytes (aLtk[0..7])
+            memcpy(&s_addDeviceData.aLtk[0], rxData, 8);
+            break;
+
+        case 3:
+            // aLtk[8..15]
+            memcpy(&s_addDeviceData.aLtk[8], rxData, 8);
+            break;
+
+        case 4:
+            // aIrk[0..7]
+            memcpy(&s_addDeviceData.aIrk[0], rxData, 8);
+            break;
+
+        case 5:
+        {
+            // aIrk[8..15]
+            memcpy(&s_addDeviceData.aIrk[8], rxData, 8);
+
+            // Debug output or pass to your app
+            UART_SendMessage("Bonding data fully received.\r\n");
+
+            s_bondingDataCounter = 0;
+            break;
+        }
+
+        default:
+            // Out-of-order or extra frames
+            s_bondingDataCounter = 0;
+            break;
+    }
+}
+
+// -----------------------------------------------------------------------------
+// parseCommandData
+// -----------------------------------------------------------------------------
+static void parseCommandData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
+{
+    s_commandData.command    = (CAN_tenumCommands)rxData[0];
+    s_commandData.receiverId = rxData[1];
+    s_commandData.deviceId   = rxData[2];
+
+    // Debug
+    char msg[64];
+    snprintf(msg, sizeof(msg),
+             "\r\nCAN_ID_COMMAND: cmd=%d, receiver=0x%02X, dev=%d\r\n",
+             s_commandData.command,
+             s_commandData.receiverId,
+             s_commandData.deviceId);
+    UART_SendMessage(msg);
+
+    switch(s_commandData.command)
+    {
+        case CAN_COMMAND_TRIGGER_OWNER_PAIRING:
+        {
+            UART_SendMessage("Trigger Owner Pairing\r\n");
+
+            break;
+        }
+
+        case CAN_COMMAND_TRIGGER_PASSIVE_ENTRY:
+        {
+            UART_SendMessage("Trigger Passive Entry\r\n");
+
+            break;
+        }
+
+        case CAN_COMMAND_PASSIVE_ENTRY_RESPONSE:
+            UART_SendMessage("Passive Entry Response\r\n");
+            break;
+
+        case CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT:
+            UART_SendMessage("Trigger Distance Measurement\r\n");
+
+            break;
+
+        case CAN_COMMAND_STOP_DISTANCE_MEASURMENT:
+            UART_SendMessage("Stop Distance Measurement\r\n");
+            break;
+
+        default:
+            UART_SendMessage("Unknown Command\r\n");
+            break;
+    }
+}
