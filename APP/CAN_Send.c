@@ -1,6 +1,6 @@
 /********************************************************************/
 /* Author   : Mohamed Abdel Hamid                                   */
-/* Date     : 26 / 2 / 2025                             	    */
+/* Date     : 26 / 2 / 2025                                     */
 /* Email    : mohamedhamiid20@gmail.com                             */
 /* Phone    : 01092301921                                           */
 /* Brief    : Handling sending data through CAN.                    */
@@ -25,6 +25,10 @@
 #include "can_msg_types.h"
 #include "CAN_Send.h"
 
+// Flag to determine the distance being sent is from passive entry or from trigger distance measurement command
+#if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
+uint8_t Global_u8PEorTDM;
+#endif
 
 #if (CAN_ENABLE_HANDOVER)
 // Global variable to track handover message sending count
@@ -114,7 +118,7 @@ void CAN_voidHandover(uint8_t Copy_u8DeviceId){
  * @param procNo Process number.
  * @param result Struct containing localization algorithm results.
  */
-void CAN_voidSendDistance(uint8_t deviceId, uint16_t procNo, localizationAlgoRun_t result){
+void CAN_voidSendDistance(uint8_t deviceId, uint16_t procNo, localizationAlgoRun_t result, uint8_t Copy_u8PEorTDM){
 
   uint8_t loc_u8CanData[8] = {0}; // Local array for CAN message data
 
@@ -134,8 +138,12 @@ void CAN_voidSendDistance(uint8_t deviceId, uint16_t procNo, localizationAlgoRun
   UART_SendMessage("\n================= \nCAN send Handover \n=================\n");
 #endif
 
-  // Send distance measurement data over CAN
-  CAN_voidSendMsg(CAN_ID_DISTANCE, loc_u8CanData);
+  if(Copy_u8PEorTDM == PE)
+    // Send distance measurement triggered by passive entry over CAN
+    CAN_voidSendMsg(CAN_ID_DISTANCE_PE, loc_u8CanData);
+  else
+    // Send distance measurement triggered by trigger distance measurement command over CAN
+    CAN_voidSendMsg(CAN_ID_DISTANCE_TDM, loc_u8CanData);
 
 #if (CAN_ENABLE_HANDOVER)
   // Track the number of handover messages sent

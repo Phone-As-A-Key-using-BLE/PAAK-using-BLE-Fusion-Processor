@@ -1,6 +1,6 @@
 /********************************************************************/
 /* Author   : Mohamed Abdel Hamid                                   */
-/* Date     : 26 / 2 / 2025                             	    */
+/* Date     : 26 / 2 / 2025                                     */
 /* Email    : mohamedhamiid20@gmail.com                             */
 /* Phone    : 01092301921                                           */
 /* Brief    : Handling sending data through CAN.                    */
@@ -9,7 +9,17 @@
 
 #ifndef CAN_SEND_H_
 #define CAN_SEND_H_
+
+/* Definitions */
+typedef enum{
+    PE,
+    TDM
+}CAN_tenuDistanceType;
+
+
 /* Helper Macros */
+
+
 /** 
  * @brief Gets the next anchor ID in a cyclic manner.
  * 
@@ -34,16 +44,20 @@
  */
 #define CAN_IS_VALID_ANCHOR(id)         ((id) < CAN_ANCHOR_MAX)
 
-#if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
+
 /* Function Prototypes */
+
+
+#if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
 /**
  * @brief Sends distance measurement data over CAN bus.
  * 
  * @param deviceId Device ID.
  * @param procNo Process number.
  * @param result Struct containing localization algorithm results.
+ * @param Copy_u8PEorTDM The distance is trigger by Passive Entry or Trigger Distance Measurement
  */
-void CAN_voidSendDistance(uint8_t deviceId, uint16_t procNo, localizationAlgoRun_t result);
+void CAN_voidSendDistance(uint8_t deviceId, uint16_t procNo, localizationAlgoRun_t result, uint8_t Copy_u8PEorTDM);
 #endif
 
 #if (CAN_ENABLE_HANDOVER)

@@ -13,7 +13,7 @@
 #define CAN_ANCHOR_1            1
 #define CAN_ANCHOR_2            2
 #define CAN_ANCHOR_3            3
-#define CAN_ANCHOR_MAX          3
+#define CAN_ANCHOR_MAX          4
 
 #define CAN_PRIMARY_ANCHOR      CAN_ANCHOR_1
 
@@ -29,22 +29,24 @@
 
 /* Anchor-specific Message IDs */
 #if (CAN_ANCHOR_ID == CAN_ANCHOR_1)
-    #define CAN_ID_DISTANCE             0x103
-    #define CAN_ID_DISTANCE_RX1         0x104
-    #define CAN_ID_DISTANCE_RX2         0x105
+    #define CAN_ID_DISTANCE_TDM         (CAN_BASE_ID + 3)
+    #define CAN_ID_DISTANCE_PE          (CAN_BASE_ID + 4)
 
 #elif (CAN_ANCHOR_ID == CAN_ANCHOR_2)
-    #define CAN_ID_DISTANCE             0x103
-    #define CAN_ID_DISTANCE_RX1         0x103
-    #define CAN_ID_DISTANCE_RX2         0x105
+    #define CAN_ID_DISTANCE_TDM         (CAN_BASE_ID + 5)
+    #define CAN_ID_DISTANCE_PE          (CAN_BASE_ID + 6)
 
 #elif (CAN_ANCHOR_ID == CAN_ANCHOR_3)
-    #define CAN_ID_DISTANCE             0x103
-    #define CAN_ID_DISTANCE_RX1         0x103
-    #define CAN_ID_DISTANCE_RX2         0x104
+    #define CAN_ID_DISTANCE_TDM         (CAN_BASE_ID + 7)
+    #define CAN_ID_DISTANCE_PE          (CAN_BASE_ID + 8)
 
 #elif (CAN_ANCHOR_ID == CAN_MASTER_NODE)
-   #define CAN_ID_DISTANCE         (CAN_BASE_ID + 3)
+    #define CAN_ID_DISTANCE_TDM_A1      (CAN_BASE_ID + 3)
+    #define CAN_ID_DISTANCE_PE_A1       (CAN_BASE_ID + 4)
+    #define CAN_ID_DISTANCE_TDM_A2      (CAN_BASE_ID + 5)
+    #define CAN_ID_DISTANCE_PE_A2       (CAN_BASE_ID + 6)
+    #define CAN_ID_DISTANCE_TDM_A3      (CAN_BASE_ID + 7)
+    #define CAN_ID_DISTANCE_PE_A3       (CAN_BASE_ID + 8)
 #else
     #error "Invalid CAN_ANCHOR_ID"
 #endif
