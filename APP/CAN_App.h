@@ -31,14 +31,17 @@
 #if (CAN_ANCHOR_ID == CAN_ANCHOR_1)
     #define CAN_ID_DISTANCE_TDM         (CAN_BASE_ID + 3)
     #define CAN_ID_DISTANCE_PE          (CAN_BASE_ID + 4)
+	#define CAN_ID_PE_STATUS    		(CAN_BASE_ID + 9)
 
 #elif (CAN_ANCHOR_ID == CAN_ANCHOR_2)
     #define CAN_ID_DISTANCE_TDM         (CAN_BASE_ID + 5)
     #define CAN_ID_DISTANCE_PE          (CAN_BASE_ID + 6)
+	#define CAN_ID_PE_STATUS    		(CAN_BASE_ID + 10)
 
 #elif (CAN_ANCHOR_ID == CAN_ANCHOR_3)
     #define CAN_ID_DISTANCE_TDM         (CAN_BASE_ID + 7)
     #define CAN_ID_DISTANCE_PE          (CAN_BASE_ID + 8)
+	#define CAN_ID_PE_STATUS	   		(CAN_BASE_ID + 11)
 
 #elif (CAN_ANCHOR_ID == CAN_MASTER_NODE)
     #define CAN_ID_DISTANCE_TDM_A1      (CAN_BASE_ID + 3)
@@ -47,6 +50,9 @@
     #define CAN_ID_DISTANCE_PE_A2       (CAN_BASE_ID + 6)
     #define CAN_ID_DISTANCE_TDM_A3      (CAN_BASE_ID + 7)
     #define CAN_ID_DISTANCE_PE_A3       (CAN_BASE_ID + 8)
+	#define CAN_ID_PE_STATUS_A1    		(CAN_BASE_ID + 9)
+	#define CAN_ID_PE_STATUS_A2 		(CAN_BASE_ID + 10)
+	#define CAN_ID_PE_STATUS_A3 		(CAN_BASE_ID + 11)
 #else
     #error "Invalid CAN_ANCHOR_ID"
 #endif
