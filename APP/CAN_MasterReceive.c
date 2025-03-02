@@ -23,8 +23,11 @@ static add_device          s_addDeviceData     = {0};
 static remove_device_t     s_removeDeviceData  = {0};
 static uint8_t             s_bondingDataCounter = 0;
 
-// Global variable for “parseHandoverData”
+// Global variables
 uint8_t gNextAnchorId = 0;
+
+uint8_t isTDM = 0;
+uint8_t anchorID = 0;
 
 // -----------------------------------------------------------------------------
 // Local (static) function prototypes (similar to your parse* functions)
@@ -54,12 +57,12 @@ void CAN0_Handler(void)
     /*
      * CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE) returns
      * either:
-     *   - 0 if it’s a status or error interrupt, or
+     *   - 0 if itï¿½s a status or error interrupt, or
      *   - The message object number (1..32) that triggered the interrupt.
      */
     ui32Status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
 
-    /* If ui32Status == 0, it means it’s a global status interrupt or error. */
+    /* If ui32Status == 0, it means itï¿½s a global status interrupt or error. */
     if (ui32Status == 0)
     {
         /* Check for errors, bus-off, etc. */
@@ -104,46 +107,82 @@ void CAN0_Handler(void)
 
 void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
 {
-    // For a standard 11-bit ID, ui32MsgID is the direct ID (no shift needed).
     uint32_t messageId = pRxMsg->ui32MsgID;
 
-    // Debug print
+
     UART_SendMessage("CAN: Message Received\r\n");
 
-    // Dispatch to parse functions — match your original message IDs
     switch (messageId)
     {
-        case CAN_ID_DISTANCE:
-            parseDistanceData(pRxMsg, rxData);
-            break;
-
-        case CAN_ID_HANDOVER:
-            parseHandoverData(pRxMsg, rxData);
-            break;
-
         case CAN_ID_BONDING_DATA:
             parseBondingData(pRxMsg, rxData);
             break;
 
-        case CAN_ID_COMMANDS:
-            parseCommandData(pRxMsg, rxData);
+        case CAN_ID_DISTANCE_TDM_A1:
+            isTDM = 1;
+            anchorID = 1;
+            break;
+
+        case CAN_ID_DISTANCE_PE_A1:
+            isTDM = 0;
+            anchorID = 1;
+            break;
+
+        case CAN_ID_DISTANCE_TDM_A2:
+            isTDM = 1;
+            anchorID = 2;
+            break;
+
+        case CAN_ID_DISTANCE_PE_A2:
+            isTDM = 0;
+            anchorID = 2;
+            break;
+
+        case CAN_ID_DISTANCE_TDM_A3:
+            isTDM = 1;
+            anchorID = 3;
+            break;
+
+        case CAN_ID_DISTANCE_PE_A3:
+            isTDM = 0;
+            anchorID = 3;
+            break;
+
+        case CAN_ID_PE_STATUS_A1:
+
+            break;
+
+        case CAN_ID_PE_STATUS_A2:
+
+            break;
+
+        case CAN_ID_PE_STATUS_A3:
+
             break;
 
         default:
         {
             char msg[64];
-            snprintf(msg, sizeof(msg),
-                     "Received unknown message ID: 0x%03X\r\n",
-                     (unsigned)messageId);
+            snprintf(msg, sizeof(msg), "Received unknown message ID: 0x%03X\r\n", (unsigned)messageId);
             UART_SendMessage(msg);
             break;
         }
     }
+
+    if (anchorID > 0)
+    {
+        char msg[64];
+        parseDistanceData(pRxMsg, rxData);
+        snprintf(msg, sizeof(msg), "Received Distance Data from Anchor %d, Type: %s\r\n",
+                 anchorID, isTDM ? "TDM" : "PE");
+        UART_SendMessage(msg);
+    }
 }
 
 
+
 // -----------------------------------------------------------------------------
-// Public “get” routines similar to your original code
+// Public ï¿½getï¿½ routines similar to your original code
 // -----------------------------------------------------------------------------
 CAN_tstrDistance CAN_structGetDistanceData(void)
 {
@@ -193,27 +232,10 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
     );
     UART_SendMessage(msg);
 
-    // Potentially call other app-layer logic
-    // ...
-}
-
-// -----------------------------------------------------------------------------
-// parseHandoverData
-// -----------------------------------------------------------------------------
-static void parseHandoverData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
-{
-    // Example: device ID is in lower 4 bits
-    uint8_t receivedDeviceId = rxData[0] & 0x0F;
-    gNextAnchorId = rxData[1];
-
-    char msg[64];
-    snprintf(msg, sizeof(msg),
-             "Handover: DeviceID=%d, NextAnchor=%d\r\n",
-             receivedDeviceId, gNextAnchorId);
-    UART_SendMessage(msg);
-
 
 }
+
+
 
 // -----------------------------------------------------------------------------
 // parseBondingData
@@ -268,55 +290,4 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
     }
 }
 
-// -----------------------------------------------------------------------------
-// parseCommandData
-// -----------------------------------------------------------------------------
-static void parseCommandData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
-{
-    s_commandData.command    = (CAN_tenumCommands)rxData[0];
-    s_commandData.receiverId = rxData[1];
-    s_commandData.deviceId   = rxData[2];
 
-    // Debug
-    char msg[64];
-    snprintf(msg, sizeof(msg),
-             "\r\nCAN_ID_COMMAND: cmd=%d, receiver=0x%02X, dev=%d\r\n",
-             s_commandData.command,
-             s_commandData.receiverId,
-             s_commandData.deviceId);
-    UART_SendMessage(msg);
-
-    switch(s_commandData.command)
-    {
-        case CAN_COMMAND_TRIGGER_OWNER_PAIRING:
-        {
-            UART_SendMessage("Trigger Owner Pairing\r\n");
-
-            break;
-        }
-
-        case CAN_COMMAND_TRIGGER_PASSIVE_ENTRY:
-        {
-            UART_SendMessage("Trigger Passive Entry\r\n");
-
-            break;
-        }
-
-        case CAN_COMMAND_PASSIVE_ENTRY_RESPONSE:
-            UART_SendMessage("Passive Entry Response\r\n");
-            break;
-
-        case CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT:
-            UART_SendMessage("Trigger Distance Measurement\r\n");
-
-            break;
-
-        case CAN_COMMAND_STOP_DISTANCE_MEASURMENT:
-            UART_SendMessage("Stop Distance Measurement\r\n");
-            break;
-
-        default:
-            UART_SendMessage("Unknown Command\r\n");
-            break;
-    }
-}
