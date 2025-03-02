@@ -114,22 +114,22 @@ void CAN_voidHandover(uint8_t Copy_u8DeviceId){
 /* CAN_voidSendDistance
  * @brief Sends distance measurement data over CAN bus.
  *
- * @param deviceId Device ID.
- * @param procNo Process number.
- * @param result Struct containing localization algorithm results.
+ * @param Copy_u8DeviceId Device ID.
+ * @param Copy_u16ProcNo Process number.
+ * @param Copy_structResults Struct containing localization algorithm results.
+ * @param Copy_u8PEorTDM flag to determine either the distance is from Passive Entry or Trigger Distance Measurement command
  */
-void CAN_voidSendDistance(uint8_t deviceId, uint16_t procNo, localizationAlgoRun_t result, uint8_t Copy_u8PEorTDM){
-
+void CAN_voidSendDistance(uint8_t Copy_u8DeviceId, uint16_t Copy_u16ProcNo, localizationAlgoRun_t Copy_structResults, uint8_t Copy_u8PEorTDM){
   uint8_t loc_u8CanData[8] = {0}; // Local array for CAN message data
 
-  loc_u8CanData[0] = deviceId;
-  loc_u8CanData[1] = procNo & 0xff;
-  loc_u8CanData[2] = (procNo >> 8) & 0xff;
-  loc_u8CanData[3] = result.distanceIntegerPart;
-  loc_u8CanData[4] = (result.distanceDecimalPart) & 0xff;
-  loc_u8CanData[5] = (result.distanceDecimalPart >> 8) & 0xff;
-  loc_u8CanData[6] = (uint8_t)(result.dqiPercentage * 100) & 0xff;
-  loc_u8CanData[7] = ((uint8_t)(result.dqiPercentage * 100) >> 8) & 0xff;
+  loc_u8CanData[0] = Copy_u8DeviceId;
+  loc_u8CanData[1] = Copy_u16ProcNo & 0xff;
+  loc_u8CanData[2] = (Copy_u16ProcNo >> 8) & 0xff;
+  loc_u8CanData[3] = Copy_structResults.distanceIntegerPart;
+  loc_u8CanData[4] = (Copy_structResults.distanceDecimalPart) & 0xff;
+  loc_u8CanData[5] = (Copy_structResults.distanceDecimalPart >> 8) & 0xff;
+  loc_u8CanData[6] = (uint8_t)(Copy_structResults.dqiPercentage * 100) & 0xff;
+  loc_u8CanData[7] = ((uint8_t)(Copy_structResults.dqiPercentage * 100) >> 8) & 0xff;
 
 #if (CAN_ANCHOR_ID != CAN_MASTER_NODE) && defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
   // Print title in shell
@@ -154,7 +154,34 @@ void CAN_voidSendDistance(uint8_t deviceId, uint16_t procNo, localizationAlgoRun
   }
 #endif
 }
+
+/**
+ * @brief Sends passive entry response over CAN bus.
+ *
+ * @param Copy_enuResponse Respone either success or fail.
+ * @param Copy_u8ReceiverId Receiver Identifier.
+ * @param Copy_u8DeviceId Device ID.
+ */
+void CAN_voidSendPeResponse(CAN_tenumPeResponse Copy_enuResponse, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8DeviceId){
+  uint8_t loc_u8CanData[8] = {0};
+
+  loc_u8CanData[0] = Copy_enuResponse;  // Store response
+  loc_u8CanData[1] = Copy_u8ReceiverId; // Store receiver ID
+  loc_u8CanData[2] = Copy_u8DeviceId;   // Store device ID
+
+#if (CAN_ANCHOR_ID != CAN_MASTER_NODE) && defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
+   // Print title in shell
+  shell_write("\n================= \nCAN send PE Response \n=================\n");
+#else
+  UART_SendMessage("\n================= \nCAN send PE Response \n=================\n");
 #endif
+
+  // Send command message
+  CAN_voidSendMsg(CAN_ID_PE_STATUS, loc_u8CanData);
+}
+#endif
+
+
 /**
  * @brief Sends commands over CAN bus, including receiver identifier.
  *
@@ -178,3 +205,6 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
   // Send command message
   CAN_voidSendMsg(CAN_ID_COMMANDS, loc_u8CanData);
 }
+
+
+

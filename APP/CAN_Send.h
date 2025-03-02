@@ -49,15 +49,15 @@ typedef enum{
 
 
 #if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
-/**
+/* CAN_voidSendDistance
  * @brief Sends distance measurement data over CAN bus.
- * 
- * @param deviceId Device ID.
- * @param procNo Process number.
- * @param result Struct containing localization algorithm results.
- * @param Copy_u8PEorTDM The distance is trigger by Passive Entry or Trigger Distance Measurement
+ *
+ * @param Copy_u8DeviceId Device ID.
+ * @param Copy_u16ProcNo Process number.
+ * @param Copy_structResults Struct containing localization algorithm results.
+ * @param Copy_u8PEorTDM flag to determine either the distance is from Passive Entry or Trigger Distance Measurement command
  */
-void CAN_voidSendDistance(uint8_t deviceId, uint16_t procNo, localizationAlgoRun_t result, uint8_t Copy_u8PEorTDM);
+void CAN_voidSendDistance(uint8_t Copy_u8DeviceId, uint16_t Copy_u16ProcNo, localizationAlgoRun_t Copy_structResults, uint8_t Copy_u8PEorTDM);
 #endif
 
 #if (CAN_ENABLE_HANDOVER)
@@ -86,4 +86,13 @@ void CAN_voidSendBondingData(uint8_t Copy_u8NvmId, bool gAppOutAuth, bool gAppOu
  * @param Copy_u8ReceiverId Receiver Identifier.
  */
 void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8DeviceId);
+
+/**
+ * @brief Sends passive entry response over CAN bus.
+ *
+ * @param Copy_enuResponse Respone either success or fail.
+ * @param Copy_u8ReceiverId Receiver Identifier.
+ * @param Copy_u8DeviceId Device ID.
+ */
+void CAN_voidSendPeResponse(CAN_tenumPeResponse Copy_enuResponse, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8DeviceId);
 #endif /* CAN_SEND_H_ */
