@@ -46,6 +46,9 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         { // Triggered from CAN_MasterReceive
             currentState = STATE_PRIMARY_PE;
             UART_SendMessage("Transition to STATE_PRIMARY_PE");
+            CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_PRIMARY_ANCHOR, 0);
+            uint16_t Loc_u8Wait = 1000;
+            while(Loc_u8Wait--);
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, 0);
         }
         break;
@@ -137,6 +140,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         // If PE was successful, mark anchor as done
         if (Copy_structEvent == EVENT_SECONDARY_PE_SUCCESSFUL)
         {
+            CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor, 0);
             Global_u8SuccessPE++;
             Global_PEDone[Global_u8CurrentAnchor] = 1;
         }

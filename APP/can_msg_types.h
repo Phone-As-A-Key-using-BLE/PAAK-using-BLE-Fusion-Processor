@@ -2,7 +2,7 @@
  * can_msg_types.h
  *
  *  Created on: Mar 26, 2024
- *      Author:
+ *      Author: Ali and Hamid
  */
 
 #ifndef CAN_MSG_TYPES_H_
@@ -72,6 +72,7 @@ typedef enum
     CAN_COMMAND_TRIGGER_PASSIVE_ENTRY,
     CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT,
     CAN_COMMAND_STOP_DISTANCE_MEASURMENT,
+    CAN_COMMAND_RESET,
     CAN_COMMAND_INVALID
 } CAN_tenumCommands;
 
