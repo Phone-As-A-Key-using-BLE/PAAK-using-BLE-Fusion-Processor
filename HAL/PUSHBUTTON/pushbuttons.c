@@ -48,6 +48,7 @@ void PushButtonHandler(void) {
     GPIOIntClear(GPIO_PORTF_BASE, BUTTON_SW1);
 
     LED_ON(LED_GREEN);
+    APP_voidFSMHandler(EVENT_OWNER_PAIRING_BUTTON_PRESSED);
     // When SW1 is pressed, turn on the Red LED and stop the application
     buttonPressed = true;
 }
