@@ -54,110 +54,106 @@ void CAN0_Handler(void)
 {
     uint32_t ui32Status;
 
-    /*
-     * CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE) returns
-     * either:
-     *   - 0 if it�s a status or error interrupt, or
-     *   - The message object number (1..32) that triggered the interrupt.
-     */
     ui32Status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
-
     /* If ui32Status == 0, it means it�s a global status interrupt or error. */
     if (ui32Status == 0)
     {
-        /* Check for errors, bus-off, etc. */
         uint32_t ctrlStatus = CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
-        // Handle or log errors/bus-off if needed...
-
-        /* Clear any global interrupt flags. */
         CANIntClear(CAN0_BASE, ui32Status);
         return;
     }
-
-    /*
-     * If ui32Status == RX_MESSAGE_BUFFER_NUM (e.g., 5),
-     * we know a message arrived in that object.
-     * You can also check if ui32Status == your TX object for TX completions.
-     */
-
     // Retrieve the message and parse it
     tCANMsgObject rxMsg;
     uint8_t rxData[8];
-
     // Associate the data buffer with rxMsg
     rxMsg.pui8MsgData = rxData;
-
     // Get the incoming frame (true => clears the interrupt/status).
     CANMessageGet(CAN0_BASE, MSG_OBJ_TX_1, &rxMsg, true);
-
     // Now call your parse function, passing the already-read message.
     CAN_voidParseReceivedFrame(&rxMsg, rxData);
-
     // Finally, clear the interrupt for this message object.
     CANIntClear(CAN0_BASE, ui32Status);
 }
 
 
 
-/*
- * This function no longer calls CANMessageGet() because you already
- * have the data in the handler. It simply parses the received message
- * (rxMsg) and its data (rxData).
- */
+
 
 void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
 {
     uint32_t messageId = pRxMsg->ui32MsgID;
 
 
-    UART_SendMessage("CAN: Message Received\r\n");
 
     switch (messageId)
     {
         case CAN_ID_BONDING_DATA:
             parseBondingData(pRxMsg, rxData);
+            APP_voidFSMHandler(EVENT_BONDING_DATA_RECEIVED);
             break;
 
         case CAN_ID_DISTANCE_TDM_A1:
             isTDM = 1;
             anchorID = 1;
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             break;
 
         case CAN_ID_DISTANCE_PE_A1:
             isTDM = 0;
             anchorID = 1;
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             break;
 
         case CAN_ID_DISTANCE_TDM_A2:
             isTDM = 1;
             anchorID = 2;
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             break;
 
         case CAN_ID_DISTANCE_PE_A2:
             isTDM = 0;
             anchorID = 2;
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             break;
 
         case CAN_ID_DISTANCE_TDM_A3:
             isTDM = 1;
             anchorID = 3;
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             break;
 
         case CAN_ID_DISTANCE_PE_A3:
             isTDM = 0;
             anchorID = 3;
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             break;
 
         case CAN_ID_PE_STATUS_A1:
+            if (rxData[0] == 1) {
+                APP_voidFSMHandler(EVENT_PRIMARY_PE_SUCCESSFUL);
+            } else {
 
+                APP_voidFSMHandler(EVENT_PRIMARY_PE_FAILED);
+            }
             break;
 
-        case CAN_ID_PE_STATUS_A2:
 
+        case CAN_ID_PE_STATUS_A2:
+            if (rxData[0] == 1) {
+                APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
+            } else {
+
+                APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+            }
             break;
 
         case CAN_ID_PE_STATUS_A3:
+            if (rxData[0] == 1) {
+                APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
+            } else {
 
+                APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+            }
             break;
 
         default:
