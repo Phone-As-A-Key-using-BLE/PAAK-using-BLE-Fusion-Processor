@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "CAN.h"                // Your Tiva CAN driver header
 #include "UART/uart.h"         // For UART debug printing
+#include "APP_FSM.h"
 #include "can_msg_types.h"
 #include "CAN_MasterReceive.h"
 #include "CAN_App.h"
@@ -55,7 +56,7 @@ void CAN0_Handler(void)
     uint32_t ui32Status;
 
     ui32Status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
-    /* If ui32Status == 0, it means it�s a global status interrupt or error. */
+    /* If ui32Status == 0, it means its a global status interrupt or error. */
     if (ui32Status == 0)
     {
         uint32_t ctrlStatus = CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
