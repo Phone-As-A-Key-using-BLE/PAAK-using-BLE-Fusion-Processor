@@ -27,7 +27,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_OWNER_PAIRING_BUTTON_PRESSED)
         {
             currentState = STATE_START_OWNER_PAIRING;
-            UART_SendMessage("Transition to STATE_START_OWNER_PAIRING");
+            UART_SendMessage("\nTransition to STATE_START_OWNER_PAIRING\n");
             APP_voidFSMHandler(EVENT_SEND_OWNER_PAIRING_COMMAND);
         }
         break;
@@ -36,7 +36,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_SEND_OWNER_PAIRING_COMMAND)
         {
             currentState = STATE_WAITING_FOR_BONDING_DATA;
-            UART_SendMessage("Transition to STATE_WAITING_FOR_BONDING_DATA");
+            UART_SendMessage("\nTransition to STATE_WAITING_FOR_BONDING_DATA\n");
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_OWNER_PAIRING, CAN_PRIMARY_ANCHOR, 0);
         }
         break;
@@ -45,7 +45,10 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_BONDING_DATA_RECEIVED)
         { // Triggered from CAN_MasterReceive
             currentState = STATE_PRIMARY_PE;
-            UART_SendMessage("Transition to STATE_PRIMARY_PE");
+            UART_SendMessage("\nTransition to STATE_PRIMARY_PE\n");
+            CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_PRIMARY_ANCHOR, 0);
+            uint16_t Loc_u8Wait = 1000;
+            while(Loc_u8Wait--);
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, 0);
         }
         break;
@@ -54,7 +57,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_PRIMARY_PE_SUCCESSFUL)
         { // Triggered from CAN_MasterReceive
             currentState = STATE_PRIMARY_TDM;
-            UART_SendMessage("Transition to STATE_PRIMARY_TDM");
+            UART_SendMessage("\nTransition to STATE_PRIMARY_TDM\n");
             Global_PEDone[CAN_PRIMARY_ANCHOR] = 1;
         }
         break;
@@ -63,7 +66,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_RECEIVE_DISTANCE)
         { // Triggered from CAN_MasterReceive
             currentState = STATE_WAKEUP_DECISION_MAKING;
-            UART_SendMessage("Transition to STATE_WAKEUP_DECISION_MAKING");
+            UART_SendMessage("\nTransition to STATE_WAKEUP_DECISION_MAKING\n");
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, 0); // First time the distance will be sent automatically but then when distance is above threshold this will be needed
             uint8_t Loc_u8Distance = CAN_structGetDistanceData().distanceIntegerPart;
             if (Loc_u8Distance <= APP_DISTANCE_TRIGGER_THRESHOLD)
@@ -81,13 +84,13 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_DISTANCE_ABOVE_THRESHOLD)
         {
             currentState = STATE_PRIMARY_TDM;
-            UART_SendMessage("Transition back to STATE_PRIMARY_TDM");
+            UART_SendMessage("\nTransition back to STATE_PRIMARY_TDM\n");
             APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
         }
         else if (Copy_structEvent == EVENT_DISTANCE_BELOW_THRESHOLD)
         {
             currentState = STATE_SECONDARY_PE;
-            UART_SendMessage("Transition to STATE_SECONDARY_PE");
+            UART_SendMessage("\nTransition to STATE_SECONDARY_PE\n");
             APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
         }
         break;
@@ -137,6 +140,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         // If PE was successful, mark anchor as done
         if (Copy_structEvent == EVENT_SECONDARY_PE_SUCCESSFUL)
         {
+            CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor, 0);
             Global_u8SuccessPE++;
             Global_PEDone[Global_u8CurrentAnchor] = 1;
         }
@@ -153,7 +157,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             if (Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
             {
                 currentState = STATE_SECONDARY_TDM;
-                UART_SendMessage("Transition to STATE_SECONDARY_TDM");
+                UART_SendMessage("\nTransition to STATE_SECONDARY_TDM\n");
                 Global_u8SuccessPE = 1;
                 APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 break;
@@ -187,7 +191,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             } else {
                 // All successful anchors measured, transition to next state
                 currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-                UART_SendMessage("Transition to STATE_VEHICLE_LEVEL_DECISION_MAKING");
+                UART_SendMessage("\nTransition to STATE_VEHICLE_LEVEL_DECISION_MAKING\n");
             }
         }
         break;
@@ -196,12 +200,12 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_RECEIVE_DISTANCE)
         {
             currentState = STATE_FUSION_ALGO;
-            UART_SendMessage("Transition to STATE_FUSION_ALGO");
+            UART_SendMessage("\nTransition to STATE_FUSION_ALGO\n");
         }
         else if (Copy_structEvent == EVENT_DISTANCE_ABOVE_THRESHOLD)
         {
             currentState = STATE_WAKEUP_DECISION_MAKING;
-            UART_SendMessage("Transition to STATE_WAKEUP_DECISION_MAKING");
+            UART_SendMessage("\nTransition to STATE_WAKEUP_DECISION_MAKING\n");
         }
         break;
 
@@ -209,7 +213,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_FINAL_DISTANCE)
         {
             currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-            UART_SendMessage("Transition back to STATE_VEHICLE_LEVEL_DECISION_MAKING");
+            UART_SendMessage("\nTransition back to STATE_VEHICLE_LEVEL_DECISION_MAKING\n");
         }
         break;
 
