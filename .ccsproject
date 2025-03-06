@@ -16,4 +16,5 @@
 	<filesToOpen value="main.c"/>
 	<isTargetManual value="false"/>
 	<origin value="D:/Collage Stuff/Senior-2/Automotive Embedded Networking/MajorTask/Refrance"/>
+	<activeTargetConfiguration value="targetConfigs/Tiva TM4C123GH6PM.ccxml"/>
 </projectOptions>
