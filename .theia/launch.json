@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ECU1_Final",
+            "type": "ccs-debug",
+            "request": "launch",
+            "projectInfo": {
+                "name": "ECU1_Final",
+                "resourceId": "/ECU1_Final"
+            }
+        }
+    ]
+}

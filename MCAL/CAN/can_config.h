@@ -74,7 +74,7 @@
  *      CAN_BIT_RATE_500K            // 500 Kbps
  *      CAN_BIT_RATE_1M              // 1 Mbps
  */
-#define CAN_BIT_RATE                CAN_BIT_RATE_100K
+#define CAN_BIT_RATE               CAN_BIT_RATE_500K 
 
 /**
  * Options for Interrupt Configuration:

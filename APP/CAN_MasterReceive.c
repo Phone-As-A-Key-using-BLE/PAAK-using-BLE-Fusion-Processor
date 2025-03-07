@@ -30,6 +30,9 @@ uint8_t gNextAnchorId = 0;
 uint8_t isTDM = 0;
 uint8_t anchorID = 0;
 
+// Debug print
+char msg[1024];
+
 // -----------------------------------------------------------------------------
 // Local (static) function prototypes (similar to your parse* functions)
 // -----------------------------------------------------------------------------
@@ -53,28 +56,29 @@ static void parseCommandData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
 
 void CAN0_Handler(void)
 {
-    uint32_t ui32Status;
 
-    ui32Status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
-    /* If ui32Status == 0, it means its a global status interrupt or error. */
-    if (ui32Status == 0)
-    {
-        uint32_t ctrlStatus = CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
+        uint32_t ui32Status;
+
+        ui32Status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
+        /* If ui32Status == 0, it means its a global status interrupt or error. */
+        if (ui32Status == 0)
+        {
+            uint32_t ctrlStatus = CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
+            CANIntClear(CAN0_BASE, ui32Status);
+            return;
+        }
+        // Retrieve the message and parse it
+        tCANMsgObject rxMsg;
+        uint8_t rxData[8];
+        // Associate the data buffer with rxMsg
+        rxMsg.pui8MsgData = rxData;
+        // Get the incoming frame (true => clears the interrupt/status).
+        CANMessageGet(CAN0_BASE, MSG_OBJ_RX_1, &rxMsg, true);
+        // Now call your parse function, passing the already-read message.
+        CAN_voidParseReceivedFrame(&rxMsg, rxData);
+        // Finally, clear the interrupt for this message object.
         CANIntClear(CAN0_BASE, ui32Status);
-        return;
     }
-    // Retrieve the message and parse it
-    tCANMsgObject rxMsg;
-    uint8_t rxData[8];
-    // Associate the data buffer with rxMsg
-    rxMsg.pui8MsgData = rxData;
-    // Get the incoming frame (true => clears the interrupt/status).
-    CANMessageGet(CAN0_BASE, MSG_OBJ_TX_1, &rxMsg, true);
-    // Now call your parse function, passing the already-read message.
-    CAN_voidParseReceivedFrame(&rxMsg, rxData);
-    // Finally, clear the interrupt for this message object.
-    CANIntClear(CAN0_BASE, ui32Status);
-}
 
 
 
@@ -90,7 +94,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
     {
         case CAN_ID_BONDING_DATA:
             parseBondingData(pRxMsg, rxData);
-            APP_voidFSMHandler(EVENT_BONDING_DATA_RECEIVED);
+            
             break;
 
         case CAN_ID_DISTANCE_TDM_A1:
@@ -114,7 +118,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         case CAN_ID_DISTANCE_PE_A2:
             isTDM = 0;
             anchorID = 2;
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+           // APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             break;
 
         case CAN_ID_DISTANCE_TDM_A3:
@@ -126,11 +130,11 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         case CAN_ID_DISTANCE_PE_A3:
             isTDM = 0;
             anchorID = 3;
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+            //APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             break;
 
         case CAN_ID_PE_STATUS_A1:
-            if (rxData[0] == 1) {
+            if (rxData[0] == CAN_PE_SUCCESS) {
                 APP_voidFSMHandler(EVENT_PRIMARY_PE_SUCCESSFUL);
             } else {
 
@@ -140,7 +144,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
 
         case CAN_ID_PE_STATUS_A2:
-            if (rxData[0] == 1) {
+            if (rxData[0] == CAN_PE_SUCCESS) {
                 APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
             } else {
 
@@ -149,7 +153,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             break;
 
         case CAN_ID_PE_STATUS_A3:
-            if (rxData[0] == 1) {
+            if (rxData[0] == CAN_PE_SUCCESS) {
                 APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
             } else {
 
@@ -159,7 +163,6 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         default:
         {
-            char msg[64];
             snprintf(msg, sizeof(msg), "Received unknown message ID: 0x%03X\r\n", (unsigned)messageId);
             UART_SendMessage(msg);
             break;
@@ -168,7 +171,6 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
     if (anchorID > 0)
     {
-        char msg[64];
         parseDistanceData(pRxMsg, rxData);
         snprintf(msg, sizeof(msg), "Received Distance Data from Anchor %d, Type: %s\r\n",
                  anchorID, isTDM ? "TDM" : "PE");
@@ -217,8 +219,7 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
     uint16_t dqiRaw = (uint16_t)rxData[6] | ((uint16_t)rxData[7] << 8);
     s_distanceData.dqiPercentage = (float)dqiRaw * 0.01f;
 
-    // Debug print
-    char msg[128];
+
     snprintf(msg, sizeof(msg),
         "\r\nCAN_ID_DISTANCE:\r\nDevID: %d, ProcNo: %d, Dist: %d.%d, DQI: %.2f%%\r\n",
         s_distanceData.deviceId,
@@ -272,10 +273,10 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
         {
             // aIrk[8..15]
             memcpy(&s_addDeviceData.aIrk[8], rxData, 8);
-
+            
             // Debug output or pass to your app
             UART_SendMessage("Bonding data fully received.\r\n");
-
+            APP_voidFSMHandler(EVENT_BONDING_DATA_RECEIVED);
             s_bondingDataCounter = 0;
             break;
         }

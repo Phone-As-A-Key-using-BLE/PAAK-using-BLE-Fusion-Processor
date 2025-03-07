@@ -426,6 +426,8 @@ void OS_Init(void) {
     LED_Init();
     PushButtons_Init();
     CAN_Init();
+    CAN_ReceiveInit();
+    IntMasterEnable();
     UART_Init();
     ADC_Init();
     NVM_Init();

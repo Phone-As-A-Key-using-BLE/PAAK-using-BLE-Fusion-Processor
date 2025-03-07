@@ -73,14 +73,15 @@ void CAN_ReceiveInit(void)
 {
     tCANMsgObject messageObject;
 
+
     // Set up the message object for reception
-    messageObject.ui32MsgID = CAN_RX_MESSAGE_ID;
-    messageObject.ui32MsgIDMask = CAN_RX_MESSAGE_MASK;
+    messageObject.ui32MsgID = 0;
+    messageObject.ui32MsgIDMask = 0;
     messageObject.ui32Flags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
     messageObject.ui32MsgLen = CAN_DATA_LENGTH;
 
     // Configure the CAN to receive the message
-    CANMessageSet(CAN_BASE, MSG_OBJ_TX_1, &messageObject, MSG_OBJ_TYPE_RX);
+    CANMessageSet(CAN_BASE, MSG_OBJ_RX_1, &messageObject, MSG_OBJ_TYPE_RX);
 }
 
 void CAN_ConfigureReceiveObjects(void)

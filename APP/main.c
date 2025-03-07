@@ -86,8 +86,7 @@ volatile bool errFlag = 0; // error flag
  int main(void)
 {
     OS_Init();        // Initialize OS and peripherals
-    CAN_ReceiveInit();
-    IntMasterEnable();
+
 
     // Print a message to indicate the system is running
     UART_SendMessage("CAN Receiver started!\n\r");

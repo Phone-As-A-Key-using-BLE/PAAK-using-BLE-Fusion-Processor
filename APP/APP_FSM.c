@@ -14,10 +14,12 @@
 
 static APP_tenuStates currentState = STATE_IDLE;
 
-bool Global_PEDone[CAN_ANCHOR_MAX];
+uint8_t Global_PEDone[CAN_ANCHOR_MAX]={0,0,0,0};
 
-uint8_t Global_u8CurrentAnchor;
-uint8_t Global_u8SuccessPE; // Success Passive Entry
+uint8_t Global_u8CurrentAnchor=0;
+uint8_t Global_u8SuccessPE=0; // Success Passive Entry
+uint8_t Global_u8FirstTime=1; // Success Passive Entry
+
 
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 {
@@ -47,8 +49,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             currentState = STATE_PRIMARY_PE;
             UART_SendMessage("\nTransition to STATE_PRIMARY_PE\n");
             CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_PRIMARY_ANCHOR, 0);
-            uint16_t Loc_u8Wait = 1000;
-            while(Loc_u8Wait--);
+            // uint32_t Loc_u8Wait = 10000000;
+            // while(Loc_u8Wait--);
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, 0);
         }
         break;
@@ -92,6 +94,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             currentState = STATE_SECONDARY_PE;
             UART_SendMessage("\nTransition to STATE_SECONDARY_PE\n");
             APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
+            Global_u8FirstTime = 1;
         }
         break;
 
@@ -130,11 +133,13 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         //            }
         //            break;
     case STATE_SECONDARY_PE:
-        if (Copy_structEvent == EVENT_DEVICE_IN_RANGE)
+    if(Copy_structEvent != EVENT_RECEIVE_DISTANCE){
+        if (Copy_structEvent == EVENT_DEVICE_IN_RANGE && Global_u8FirstTime)
         {
             // First time entering, reset tracking variables
             Global_u8CurrentAnchor = 0;
-            Global_u8SuccessPE = 0;
+            Global_u8SuccessPE = 1;
+            Global_u8FirstTime = 0;
         }
 
         // If PE was successful, mark anchor as done
@@ -175,9 +180,17 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         {
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
         }
+    }
         break;
 
     case STATE_SECONDARY_TDM:
+        if (Global_u8FirstTime)
+        {
+            // First time entering, reset tracking variables
+            Global_u8CurrentAnchor = 0;
+            Global_u8SuccessPE = 1;
+            Global_u8FirstTime = 0;
+        }
         if (Copy_structEvent == EVENT_RECEIVE_DISTANCE) {
             // Find the next anchor that has completed PE but not yet measured
             while (Global_u8SuccessPE < CAN_ANCHOR_MAX && !Global_PEDone[Global_u8SuccessPE]) {
