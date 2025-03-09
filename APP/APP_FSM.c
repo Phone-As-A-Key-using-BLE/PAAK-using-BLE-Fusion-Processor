@@ -123,29 +123,26 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         {
             currentState = STATE_SECONDARY_PE;
             UART_SendMessage("\n[INFO] Device is in range. Initiating Secondary Passive Entry (PE)...\n");
-            APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
             Global_u8FirstTime = 1;
+            APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
         }
         break;
 
     // **SECONDARY PASSIVE ENTRY (PE)**: Handle multiple anchors for PE
     case STATE_SECONDARY_PE:
-        if (Copy_structEvent != EVENT_RECEIVE_DISTANCE)
+        if (Copy_structEvent == EVENT_DEVICE_IN_RANGE && Global_u8FirstTime)
         {
-            if (Copy_structEvent == EVENT_DEVICE_IN_RANGE && Global_u8FirstTime)
-            {
-                // Initialize PE process
-                Global_u8CurrentAnchor = 0;
-                Global_u8SuccessPE = 0;
-                Global_u8FirstTime = 0;
-                Global_u8PERetryCount = 0;
-            }
-
-            // Send Passive Entry command
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
-            snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
-            UART_SendMessage(buffer);
+            // Initialize PE process
+            Global_u8CurrentAnchor = 0;
+            Global_u8SuccessPE = 0;
+            Global_u8FirstTime = 0;
+            Global_u8PERetryCount = 0;
         }
+
+        // Send Passive Entry command
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
+        snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
+        UART_SendMessage(buffer);
 
         // Treat PE success as distance received
         if (Copy_structEvent == EVENT_RECEIVE_DISTANCE)
@@ -167,6 +164,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 {
                     currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
                     UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
+                    APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                     break;
                 }
             }
@@ -180,6 +178,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             {
                 snprintf(buffer, sizeof(buffer), "\n[INFO] Moving to next available anchor %d...\n", Global_u8CurrentAnchor);
                 UART_SendMessage(buffer);
+                // Send Passive Entry command
+                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
             }
         }
         // Handle PE Failure
@@ -191,6 +191,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 snprintf(buffer, sizeof(buffer), "\n[WARNING] Passive Entry failed on anchor %d. Retrying attempt %d/%d...\n",
                          Global_u8CurrentAnchor, Global_u8PERetryCount, MAX_PE_RETRIES);
                 UART_SendMessage(buffer);
+                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
             }
             else
             {
@@ -198,6 +199,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 UART_SendMessage(buffer);
                 Global_u8CurrentAnchor++;
                 Global_u8PERetryCount = 0;
+                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
             }
         }
         break;
