@@ -75,8 +75,8 @@ void CAN_ReceiveInit(void)
 
 
     // Set up the message object for reception
-    messageObject.ui32MsgID = 0;
-    messageObject.ui32MsgIDMask = 0;
+    messageObject.ui32MsgID = 0x100;
+    messageObject.ui32MsgIDMask = 0x700;
     messageObject.ui32Flags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
     messageObject.ui32MsgLen = CAN_DATA_LENGTH;
 

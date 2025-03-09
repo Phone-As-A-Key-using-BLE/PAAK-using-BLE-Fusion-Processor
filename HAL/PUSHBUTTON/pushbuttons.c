@@ -9,7 +9,7 @@
 
 
 volatile bool buttonPressed = false;  // Flag to indicate if button is pressed
-
+extern APP_tenuStates currentState;
 /***********************************************
  * Function Name: PushButtons_Init
  * Inputs: N/A
@@ -49,6 +49,7 @@ void PushButtonHandler(void) {
     GPIOIntClear(GPIO_PORTF_BASE, BUTTON_SW1);
 
     LED_ON(LED_GREEN);
+    currentState = STATE_IDLE;
     APP_voidFSMHandler(EVENT_OWNER_PAIRING_BUTTON_PRESSED);
     // When SW1 is pressed, turn on the Red LED and stop the application
     buttonPressed = true;

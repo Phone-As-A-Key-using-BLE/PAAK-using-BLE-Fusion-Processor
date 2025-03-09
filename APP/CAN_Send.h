@@ -1,6 +1,6 @@
 /********************************************************************/
 /* Author   : Mohamed Abdel Hamid                                   */
-/* Date     : 26 / 2 / 2025                                     */
+/* Date     : 26 / 2 / 2025                                         */
 /* Email    : mohamedhamiid20@gmail.com                             */
 /* Phone    : 01092301921                                           */
 /* Brief    : Handling sending data through CAN.                    */
@@ -10,15 +10,7 @@
 #ifndef CAN_SEND_H_
 #define CAN_SEND_H_
 
-/* Definitions */
-typedef enum{
-    PE,
-    TDM
-}CAN_tenuDistanceType;
-
-
 /* Helper Macros */
-
 
 /** 
  * @brief Gets the next anchor ID in a cyclic manner.
@@ -49,6 +41,9 @@ typedef enum{
 
 
 #if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
+
+#include "app_localization.h"
+
 /* CAN_voidSendDistance
  * @brief Sends distance measurement data over CAN bus.
  *
@@ -58,7 +53,11 @@ typedef enum{
  * @param Copy_u8PEorTDM flag to determine either the distance is from Passive Entry or Trigger Distance Measurement command
  */
 void CAN_voidSendDistance(uint8_t Copy_u8DeviceId, uint16_t Copy_u16ProcNo, localizationAlgoRun_t Copy_structResults, uint8_t Copy_u8PEorTDM);
-#endif
+
+/* CAN_voidNotifyWakeup
+ * @brief Sends wake up notification over CAN bus.
+ */
+void CAN_voidNotifyWakeup();
 
 #if (CAN_ENABLE_HANDOVER)
 /**
@@ -80,14 +79,6 @@ void CAN_voidHandover(uint8_t Copy_u8DeviceId);
 void CAN_voidSendBondingData(uint8_t Copy_u8NvmId, bool gAppOutAuth, bool gAppOutLeSc, gapSmpKeys_t Add_structKeys);
 
 /**
- * @brief Sends commands over CAN bus, including receiver identifier.
- * 
- * @param Copy_enuCommand Command ID.
- * @param Copy_u8ReceiverId Receiver Identifier.
- */
-void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8DeviceId);
-
-/**
  * @brief Sends passive entry response over CAN bus.
  *
  * @param Copy_enuResponse Respone either success or fail.
@@ -95,4 +86,17 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
  * @param Copy_u8DeviceId Device ID.
  */
 void CAN_voidSendPeResponse(CAN_tenumPeResponse Copy_enuResponse, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8DeviceId);
+
+#else
+
+/**
+ * @brief Sends commands over CAN bus, including receiver identifier.
+ * 
+ * @param Copy_enuCommand Command ID.
+ * @param Copy_u8ReceiverId Receiver Identifier.
+ */
+void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Data);
+
+#endif
+
 #endif /* CAN_SEND_H_ */

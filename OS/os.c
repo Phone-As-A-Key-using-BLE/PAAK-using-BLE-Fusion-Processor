@@ -9,7 +9,7 @@
 
 #include "os.h"
 
-volatile SystemState currentState = STATE_NORMAL;
+volatile SystemState currState = STATE_NORMAL;
 
 //volatile uint32_t sysCounter = 0;  // Define the SysTick counter
 
@@ -417,10 +417,8 @@ void OS_Init(void) {
 
     // Initialize system clock
     SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
-
     // Initialize SysTick
     SysTick_Init();
-
     // Initialize peripherals
     GPIO_InitPort(GPIO_PORTF_BASE);
     LED_Init();

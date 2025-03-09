@@ -6,7 +6,6 @@
  */
 
 #ifndef CAN_MSG_TYPES_H_
-
 #define CAN_MSG_TYPES_H_
 
 /*! *********************************************************************************
@@ -65,7 +64,6 @@ extern bool isAdvertising;
 * Public type definitions
 *************************************************************************************
 ********************************************************************************** */
-
 typedef enum
 {
     CAN_COMMAND_TRIGGER_OWNER_PAIRING,
@@ -76,13 +74,19 @@ typedef enum
     CAN_COMMAND_INVALID
 } CAN_tenumCommands;
 
-
 typedef enum
 {
     CAN_PE_SUCCESS,
     CAN_PE_FAILED
 } CAN_tenumPeResponse;
 
+typedef enum{
+    PE,
+    TDM
+}CAN_tenuDistanceType;
+
+
+#define CAN_RESET_ALL   0
 
 typedef struct object_list
 {
