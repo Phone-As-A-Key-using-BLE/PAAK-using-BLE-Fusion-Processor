@@ -38,9 +38,9 @@ char msg[1024];
 // -----------------------------------------------------------------------------
 
 static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
-static void parseHandoverData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
+//static void parseHandoverData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
 static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
-static void parseCommandData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
+//static void parseCommandData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
 
 
 /*
