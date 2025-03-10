@@ -197,21 +197,21 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         /* Wake-up notification messages ---------------------------------- */
         case CAN_ID_WAKEUP_NOTIFICATION_A1:
-            //APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+            APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
-            //APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
-            //APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         default:
         {
             snprintf(msg, sizeof(msg), "Received unknown message ID: 0x%03X\r\n", (unsigned)messageId);
-            UART_SendColoredMessage(ANSI_COLOR_RED, "%s", msg);
+            UART_SendMessage(msg);
             break;
         }
     }
@@ -223,7 +223,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         snprintf(msg, sizeof(msg),
                  "Received Distance Data from Anchor %d, Type: %s\r\n",
                  anchorID, isTDM ? "TDM" : "PE");
-        UART_SendColoredMessage(ANSI_COLOR_CYAN, "%s", msg);
+        UART_SendMessage (msg);
     }
 }
 
@@ -274,7 +274,7 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
     s_distanceData.distanceIntegerPart,
     s_distanceData.distanceDecimalPart
     );
-    UART_SendColoredMessage(NULL, "%s", msg);
+    UART_SendMessage (msg);
 
     /* (Optional) If you also want to log the DQI:
     snprintf(
@@ -286,7 +286,7 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
     s_distanceData.distanceDecimalPart,
     (double)s_distanceData.dqiPercentage
     );
-    UART_SendColoredMessage(ANSI_COLOR_GREEN, "%s", msg);
+    UART_SendMessage (ANSI_COLOR_GREEN, "%s", msg);
     */
 
 
@@ -330,7 +330,7 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
         case 5:
             /* aIrk[8..15] */
             memcpy(&s_addDeviceData.aIrk[8], rxData, 8);
-            UART_SendColoredMessage(ANSI_COLOR_BLUE, "Bonding data fully received.\r\n");
+            UART_SendMessage ("Bonding data fully received.\r\n");
             APP_voidFSMHandler(EVENT_BONDING_DATA_RECEIVED);
             s_bondingDataCounter = 0;
             break;

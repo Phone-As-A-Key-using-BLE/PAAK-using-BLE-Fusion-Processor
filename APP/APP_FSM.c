@@ -62,7 +62,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
     // **WAITING FOR PRIMARY WAKEUP**: System waits for a wake-up event
     case STATE_WAITING_FOR_PRIMARY_WAKEUP:
-        if (Copy_structEvent == EVENT_BONDING_DATA_RECEIVED)
+        if (Copy_structEvent == EVENT_PRIMARY_WAKEUP_RECEIVED)
         {
             currentState = STATE_PRIMARY_PE;
             UART_SendMessage("\n[INFO] Wake-up signal received. Triggering Passive Entry (PE) on primary anchor...\n");
