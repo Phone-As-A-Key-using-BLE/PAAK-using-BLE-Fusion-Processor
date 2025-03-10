@@ -345,7 +345,7 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
              "[INFO] Command Sent:\n  - Command ID  : %d\n  - Receiver ID : %d\n  - Data        : %d\n",
              Copy_enuCommand, Copy_u8ReceiverId, Copy_u8Data);
     UART_SendMessage(loc_cPrintBuffer);
-    UART_SendMessage("============================\n\n");
+    UART_SendMessage("\n============================\n\n");
 #endif
 }
 

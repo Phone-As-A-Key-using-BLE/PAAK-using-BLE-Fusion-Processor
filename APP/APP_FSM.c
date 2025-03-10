@@ -23,6 +23,7 @@ uint8_t Global_u8CurrentAnchor=0;
 uint8_t Global_u8SuccessPE=0; // Success Passive Entry
 uint8_t Global_u8FirstTime=1; 
 uint8_t Global_u8PERetryCount=0;
+uint8_t flag=1;
 
 
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
@@ -55,14 +56,14 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_BONDING_DATA_RECEIVED)
         {
             currentState = STATE_WAITING_FOR_PRIMARY_WAKEUP;
+
             UART_SendMessage("\n[INFO] Bonding data received. Waiting for wake-up signal from primary anchor...\n");
             CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_PRIMARY_ANCHOR, 0);
         }
-        break;
-
     // **WAITING FOR PRIMARY WAKEUP**: System waits for a wake-up event
     case STATE_WAITING_FOR_PRIMARY_WAKEUP:
         if (Copy_structEvent == EVENT_PRIMARY_WAKEUP_RECEIVED)
+        // break;
         {
             currentState = STATE_PRIMARY_PE;
             UART_SendMessage("\n[INFO] Wake-up signal received. Triggering Passive Entry (PE) on primary anchor...\n");
@@ -77,6 +78,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             currentState = STATE_PRIMARY_TDM;
             UART_SendMessage("\n[SUCCESS] Primary Passive Entry successful. Proceeding to Trigger Distance Measurement (TDM)...\n");
             Global_PEDone[CAN_PRIMARY_ANCHOR] = 1;
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, 0);
         }
         else if (Copy_structEvent == EVENT_PRIMARY_PE_FAILED)
         {
@@ -95,7 +97,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             if (!Global_u8FirstTime)
             {
                 // Trigger distance measurement when the device is out of range
-                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, CAN_PRIMARY_ANCHOR);
+                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, 0);
                 Global_u8FirstTime = 0;
             }
 
@@ -128,79 +130,66 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         }
         break;
 
-    // **SECONDARY PASSIVE ENTRY (PE)**: Handle multiple anchors for PE
-    case STATE_SECONDARY_PE:
+   case STATE_SECONDARY_PE:
         if (Copy_structEvent == EVENT_DEVICE_IN_RANGE && Global_u8FirstTime)
         {
             // Initialize PE process
-            Global_u8CurrentAnchor = 0;
+            Global_u8CurrentAnchor = 1;
             Global_u8SuccessPE = 0;
             Global_u8FirstTime = 0;
             Global_u8PERetryCount = 0;
         }
 
-        // Send Passive Entry command
-        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
-        snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
-        UART_SendMessage(buffer);
-
-        // Treat PE success as distance received
-        if (Copy_structEvent == EVENT_RECEIVE_DISTANCE)
+        switch (Copy_structEvent)
         {
-            Global_u8SuccessPE++;
-            Global_PEDone[Global_u8CurrentAnchor] = 1;
+            case EVENT_RECEIVE_DISTANCE:
+                Global_u8SuccessPE++;
+                Global_PEDone[Global_u8CurrentAnchor] = 1;
 
-            snprintf(buffer, sizeof(buffer), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor);
-            UART_SendMessage(buffer);
+                snprintf(buffer, sizeof(buffer), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor);
+                UART_SendMessage(buffer);
 
-            Global_u8CurrentAnchor++;
-            Global_u8PERetryCount = 0;
-
-            if (Global_u8CurrentAnchor >= CAN_ANCHOR_MAX)
-            {
-                Global_u8CurrentAnchor = 0;
+                Global_u8PERetryCount = 0;
+                
+                // Move to the next available anchor
+                do {
+                    Global_u8CurrentAnchor++;
+                } while (Global_u8CurrentAnchor < CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor]);
 
                 if (Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
                 {
-                    currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
                     UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
+                    currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
                     APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                     break;
                 }
-            }
+                break;
 
-            while (Global_u8CurrentAnchor < CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor])
-            {
-                Global_u8CurrentAnchor++;
-            }
-
-            if (Global_u8CurrentAnchor < CAN_ANCHOR_MAX)
-            {
-                snprintf(buffer, sizeof(buffer), "\n[INFO] Moving to next available anchor %d...\n", Global_u8CurrentAnchor);
-                UART_SendMessage(buffer);
-                // Send Passive Entry command
-                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
-            }
+            case EVENT_SECONDARY_PE_FAILED:
+                if (Global_u8PERetryCount < MAX_PE_RETRIES)
+                {
+                    Global_u8PERetryCount++;
+                    snprintf(buffer, sizeof(buffer), "\n[WARNING] Passive Entry failed on anchor %d. Retrying attempt %d/%d...\n",
+                            Global_u8CurrentAnchor, Global_u8PERetryCount, MAX_PE_RETRIES);
+                    UART_SendMessage(buffer);
+                }
+                else
+                {
+                    snprintf(buffer, sizeof(buffer), "\n[ERROR] Passive Entry failed on anchor %d after maximum retries. Moving to next anchor...\n", Global_u8CurrentAnchor);
+                    UART_SendMessage(buffer);
+                    Global_u8PERetryCount = 0;
+                    do {
+                        Global_u8CurrentAnchor++;
+                    } while (Global_u8CurrentAnchor < CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor]);
+                }
+                break;
         }
-        // Handle PE Failure
-        else if (Copy_structEvent == EVENT_SECONDARY_PE_FAILED)
+
+        if (Global_u8CurrentAnchor < CAN_ANCHOR_MAX)
         {
-            if (Global_u8PERetryCount < MAX_PE_RETRIES)
-            {
-                Global_u8PERetryCount++;
-                snprintf(buffer, sizeof(buffer), "\n[WARNING] Passive Entry failed on anchor %d. Retrying attempt %d/%d...\n",
-                         Global_u8CurrentAnchor, Global_u8PERetryCount, MAX_PE_RETRIES);
-                UART_SendMessage(buffer);
-                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
-            }
-            else
-            {
-                snprintf(buffer, sizeof(buffer), "\n[ERROR] Passive Entry failed on anchor %d after maximum retries. Moving to next anchor...\n", Global_u8CurrentAnchor);
-                UART_SendMessage(buffer);
-                Global_u8CurrentAnchor++;
-                Global_u8PERetryCount = 0;
-                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
-            }
+            snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
+            UART_SendMessage(buffer);
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
         }
         break;
 
