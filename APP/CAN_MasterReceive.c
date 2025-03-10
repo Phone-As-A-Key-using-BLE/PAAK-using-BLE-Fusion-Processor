@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdarg.h>          /* For va_list, va_start, etc. */
-#include "CAN.h"             // Your Tiva CAN driver header
+#include <stdarg.h>          
+#include "CAN.h"             
 #include "UART/uart.h"       // For UART debug printing
 #include "APP_FSM.h"
 #include "can_msg_types.h"
