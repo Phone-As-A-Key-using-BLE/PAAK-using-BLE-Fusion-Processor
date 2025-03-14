@@ -77,7 +77,8 @@ typedef enum {
 
 
 #define APP_DISTANCE_TRIGGER_THRESHOLD      2
-#define APP_MINUMUM_DISTANCE_READINGS       2
+#define APP_MINUMUM_DISTANCE_READINGS       100
+#define APP_CS_NO_OF_MEASURING_DISTANCE     10
 
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent);
 

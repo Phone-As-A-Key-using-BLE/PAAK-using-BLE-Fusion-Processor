@@ -106,7 +106,7 @@ void CAN0_Handler(void)
     /* Clear the interrupt for this message object. */
     CANIntClear(CAN0_BASE, ui32Status);
 }
-
+uint8_t counter=0;
 /* ---------------------------------------------------------------------------
  * CAN_voidParseReceivedFrame
  * ---------------------------------------------------------------------------*/
@@ -124,41 +124,61 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         case CAN_ID_DISTANCE_TDM_A1:
             isTDM = 1;
             anchorID = 1;
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+            counter++;
+            if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                counter = 0;
+            }
             break;
 
         case CAN_ID_DISTANCE_PE_A1:
             isTDM = 0;
             anchorID = 1;
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+            counter++;
+            if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                counter = 0;
+            }
             break;
 
         case CAN_ID_DISTANCE_TDM_A2:
             isTDM = 1;
             anchorID = 2;
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+            counter++;
+            if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                counter = 0;
+            }
             break;
 
         case CAN_ID_DISTANCE_PE_A2:
             isTDM = 0;
             anchorID = 2;
-            /* Original code commented out:
-             * APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
-             */
+            counter++;
+            if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                counter = 0;
+            }
             break;
 
         case CAN_ID_DISTANCE_TDM_A3:
             isTDM = 1;
             anchorID = 3;
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+            counter++;
+            if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                counter = 0;
+            }
             break;
 
         case CAN_ID_DISTANCE_PE_A3:
             isTDM = 0;
             anchorID = 3;
-            /* Original code commented out:
-             * APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
-             */
+            counter++;
+            if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                counter = 0;
+            }
             break;
 
         /* PE Status messages --------------------------------------------- */
@@ -224,6 +244,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
                  "Received Distance Data from Anchor %d, Type: %s\r\n",
                  anchorID, isTDM ? "TDM" : "PE");
         UART_SendMessage (msg);
+        anchorID=0;
     }
 }
 
