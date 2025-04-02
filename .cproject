@@ -52,6 +52,7 @@
                                     <listOptionValue value="${PROJECT_ROOT}\MCAL\CAN"/>
                                     <listOptionValue value="${LED}"/>
                                     <listOptionValue value="${PROJECT_LOC}/MCAL"/>
+                                    <listOptionValue value="${PROJECT_LOC}/APP"/>
                                     <listOptionValue value="${CG_TOOL_ROOT}/include"/>
                                     <listOptionValue value="C:\ti\TivaWare_C_Series-2.2.0.295"/>
                                 </option>

@@ -4,15 +4,17 @@
  *  Created on: Feb 27, 2025
  *      Author: 
  */
-#include <cmath>
-#include <cstdint>
+
 #include <string.h>
 #include <stdio.h>
 #include "UART/uart.h"
 #include "APP/can_msg_types.h"
 #include "APP/CAN_Send.h"
 #include "APP/CAN_MasterReceive.h"
+
 #include "APP/CAN_App.h"
+
+
 #include "APP/APP_FSM.h"
 
 //Fusion
@@ -171,7 +173,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 if (Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
                 {
                     uint8_t i=0;
-                    for (i = 0; i < CAR_ANCHOR_MAX ;i++)
+                    for (i = 0; i < CAN_ANCHOR_MAX ;i++)
                         Global_PEDone[i]=0;
                     
                     UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
