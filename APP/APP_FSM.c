@@ -4,8 +4,8 @@
  *  Created on: Feb 27, 2025
  *      Author: 
  */
-#include <cmath>
-#include <cstdint>
+// #include <cmath>
+// #include <cstdint>
 #include <string.h>
 #include <stdio.h>
 #include "UART/uart.h"
@@ -16,8 +16,8 @@
 #include "APP/APP_FSM.h"
 
 //Fusion
-#include "APP/Fusion/Trilateration.h"
-#include "APP/Fusion/Particle.h"
+// #include "APP/Fusion/Trilateration.h"
+// #include "APP/Fusion/Particle.h"
 
 
 char buffer[1024]; // for debugging
@@ -33,7 +33,7 @@ uint8_t Global_u8PERetryCount=0;
 uint8_t flag=1;
 
 //Fusion
-Particle particles[NUM_PARTICLES];
+//Particle particles[NUM_PARTICLES];
 uint8_t volatile firstTimeFlag = 1;
 
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
@@ -171,7 +171,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 if (Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
                 {
                     uint8_t i=0;
-                    for (i = 0; i < CAR_ANCHOR_MAX ;i++)
+                    
+                    for (i = 0; i < CAN_ANCHOR_MAX ;i++)
                         Global_PEDone[i]=0;
                     
                     UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
@@ -240,22 +241,22 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
         /******* Add functions for distance 3 calculations  *******/
         //Global_f64Readings[2] = ???
-        object_list testObj [NUM_OF_ANCHORS] = {
-        {Global_f64Readings[0],1},{Global_f64Readings[1],2},{Global_f64Readings[2],3}
-          };
-        double_t estimate_final[2]={0,0};
-        Measurement_Type measureA = Master_trilaterate_position(testObj);
+//        object_list testObj [NUM_OF_ANCHORS] = {
+//         {Global_f64Readings[0],1},{Global_f64Readings[1],2},{Global_f64Readings[2],3}
+// };
+//         double_t estimate_final[2]={0,0};
+//        Measurement_Type measureA = Master_trilaterate_position(testObj);
 
         //Particle filter
         if (firstTimeFlag){
           firstTimeFlag = 0;
-          Master_initialize_particles(particles,measureA.x,measureA.y,1.00);
+//          Master_initialize_particles(particles,measureA.x,measureA.y,1.00);
         }
 
-        Master_prediction(particles);
-        Master_update_particles(particles,measureA);
-        Master_resample(particles);
-        Master_estimate(particles,estimate_final);
+        // Master_prediction(particles);
+        // Master_update_particles(particles,measureA);
+        // Master_resample(particles);
+        // Master_estimate(particles,estimate_final);
 
 
         APP_voidFSMHandler(EVENT_FINAL_DISTANCE);
