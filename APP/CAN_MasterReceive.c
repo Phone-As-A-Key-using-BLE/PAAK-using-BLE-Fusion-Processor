@@ -383,5 +383,5 @@ static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
     UART_SendMessage(msg);
 
     /* Trigger an event if needed */
-    APP_voidFSMHandler(EVENT_RSSI_RECEIVED);
+    APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
 }
