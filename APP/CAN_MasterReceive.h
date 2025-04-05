@@ -2,11 +2,10 @@
  * CAN_MasterReceive.h
  *
  *  Created on: Mar 18, 2024
- *      Author: Ali yasser
- *      Email : engaliyasser7@gmail.con
+ *      Author: Ali Yasser
+ *      Email : engaliyasser7@gmail.com
  *      Phone : 01154784667
  */
-
 
 #ifndef CAN_MASTER_RECEIVE_H_
 #define CAN_MASTER_RECEIVE_H_
@@ -35,6 +34,17 @@ typedef struct {
     uint8_t receiverId;
     uint8_t deviceId;
 } CAN_tstrCommandData;
+
+typedef struct {
+    uint8_t averageRssi;
+    uint8_t confidence;
+    uint8_t accuracy;
+    uint16_t distance;
+    uint8_t anchorId; // Indicates which anchor the data belongs to
+} RSSIData_t;
+
+// Global variables
+extern RSSIData_t gRSSIData;
 
 // Function declarations
 void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxData);

@@ -17,42 +17,7 @@
 #include "shell_print.h"
 #endif
 
-/* ---------------------------------------------------------------------------
- * ANSI escape color codes
- * ---------------------------------------------------------------------------*/
-#define ANSI_COLOR_RESET   "\x1b[0m"
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_YELLOW  "\x1b[33m"
-#define ANSI_COLOR_BLUE    "\x1b[34m"
-#define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_CYAN    "\x1b[36m"
-#define ANSI_COLOR_WHITE   "\x1b[37m"
 
-/* ---------------------------------------------------------------------------
- * Helper function for standardized, colored UART output
- * ---------------------------------------------------------------------------*/
-static void UART_SendColoredMessage(const char* color, const char* format, ...)
-{
-    char buffer[1024];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-    // If color is null or empty, just send the raw text without color codes.  
-    if ((color == NULL) || (color[0] == '\0'))  
-    {  
-        UART_SendMessage(buffer);  
-        return;  
-    }  
-
-    // Otherwise, use ANSI color codes.  
-    char coloredBuffer[1024];  
-    snprintf(coloredBuffer, sizeof(coloredBuffer),  
-            "%s%s%s", color, buffer, ANSI_COLOR_RESET);  
-
-    UART_SendMessage(coloredBuffer);  
-}
 
 /* ---------------------------------------------------------------------------
  * Data structures mirroring NXP-based variables
@@ -71,11 +36,17 @@ uint8_t anchorID = 0;
 /* Debug print buffer */
 char msg[1024];
 
+
+
+RSSIData_t gRSSIData = {0};
+
+
 /* ---------------------------------------------------------------------------
  * Local (static) function prototypes
  * ---------------------------------------------------------------------------*/
 static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
 static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
+static void parseRssiData(uint32_t messageId, const uint8_t* rxData);
 
 /* ---------------------------------------------------------------------------
  * CAN0_Handler (Interrupt Service Routine)
@@ -228,6 +199,13 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
+        /* RSSI messages -------------------------------------------------- */
+        case CAN_ID_RSSI_A1:
+        case CAN_ID_RSSI_A2:
+        case CAN_ID_RSSI_A3:
+            parseRssiData(messageId, rxData);
+            break;
+
         default:
         {
             snprintf(msg, sizeof(msg), "Received unknown message ID: 0x%03X\r\n", (unsigned)messageId);
@@ -363,4 +341,47 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
     }
 
     (void)pRxMsg; /* Suppress unused parameter warning if not needed otherwise */
+}
+
+/* ---------------------------------------------------------------------------
+ * parseRssiData
+ * ---------------------------------------------------------------------------*/
+static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
+{
+    RSSIData_t* targetData = NULL;
+
+    /* Determine the target structure based on the message ID */
+    switch (messageId)
+    {
+        case CAN_ID_RSSI_A1:
+            targetData = &gRSSIData;
+            targetData->anchorId = 1;
+            break;
+        case CAN_ID_RSSI_A2:
+            targetData = &gRSSIData;
+            targetData->anchorId = 2;
+            break;
+        case CAN_ID_RSSI_A3:
+            targetData = &gRSSIData;
+            targetData->anchorId = 3;
+            break;
+        default:
+            return; // Unknown message ID
+    }
+
+    /* Parse RSSI data */
+    targetData->averageRssi = rxData[0];
+    targetData->confidence = rxData[1];
+    targetData->accuracy = rxData[2];
+    targetData->distance = ((uint16_t)rxData[3] << 8) | rxData[4];
+
+    /* Log the parsed data */
+    snprintf(msg, sizeof(msg),
+             "RSSI Data - Anchor: %d, Avg: %d, Conf: %d, Acc: %d, Dist: %d\r\n",
+             targetData->anchorId, targetData->averageRssi, targetData->confidence,
+             targetData->accuracy, targetData->distance);
+    UART_SendMessage(msg);
+
+    /* Trigger an event if needed */
+    APP_voidFSMHandler(EVENT_RSSI_RECEIVED);
 }
