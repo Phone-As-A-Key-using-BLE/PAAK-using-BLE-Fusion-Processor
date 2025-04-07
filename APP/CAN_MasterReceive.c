@@ -16,7 +16,7 @@
 #include "shell_digital_key_car_anchor_cs.h"
 #include "shell_print.h"
 #endif
-
+extern uint8_t Global_u8CurrentAnchor; // Temp Solution
 
 
 /* ---------------------------------------------------------------------------
@@ -201,9 +201,19 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         /* RSSI messages -------------------------------------------------- */
         case CAN_ID_RSSI_A1:
+            if (Global_u8CurrentAnchor != CAN_ANCHOR_1) {
+                parseRssiData(messageId, rxData);
+            }
+            break;
         case CAN_ID_RSSI_A2:
+            if (Global_u8CurrentAnchor != CAN_ANCHOR_2) {
+                parseRssiData(messageId, rxData);
+            }
+            break;
         case CAN_ID_RSSI_A3:
-            parseRssiData(messageId, rxData);
+            if (Global_u8CurrentAnchor != CAN_ANCHOR_3) {
+                parseRssiData(messageId, rxData);
+            }
             break;
 
         default:

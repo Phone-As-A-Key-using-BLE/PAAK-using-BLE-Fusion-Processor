@@ -74,6 +74,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             while(delay--);
             CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_PRIMARY_ANCHOR, 0);
         }
+        break;
     // **WAITING FOR PRIMARY WAKEUP**: System waits for a wake-up event
     case STATE_WAITING_FOR_PRIMARY_WAKEUP:
         if (Copy_structEvent == EVENT_PRIMARY_WAKEUP_RECEIVED)
@@ -94,9 +95,9 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         }
         else if (Copy_structEvent == EVENT_PRIMARY_PE_FAILED)
         {
-            currentState = STATE_WAITING_FOR_PRIMARY_WAKEUP;
+            currentState = STATE_PRIMARY_PE;
             UART_SendMessage("\n[ERROR] Primary Passive Entry failed. Reverting to bonding data state to reset and trigger PE again...\n");
-            APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, 1);
         }
         break;
 
@@ -147,7 +148,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_DEVICE_IN_RANGE && Global_u8FirstTime)
         {
             // Initialize PE process
-            Global_u8CurrentAnchor = 1;
+            Global_u8CurrentAnchor = 0;
             Global_u8SuccessPE = 0;
             Global_u8FirstTime = 0;
             Global_u8PERetryCount = 0;
@@ -160,7 +161,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 Global_PEDone[Global_u8CurrentAnchor] = 1;
                 Global_f64Readings[Global_u8CurrentAnchor] = (double_t)(CAN_structGetDistanceData().distanceIntegerPart + CAN_structGetDistanceData().distanceDecimalPart/100.0);
 
-                snprintf(buffer, sizeof(buffer), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor);
+                snprintf(buffer, sizeof(buffer), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor+1);
                 UART_SendMessage(buffer);
 
                 Global_u8PERetryCount = 0;
@@ -170,17 +171,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                     Global_u8CurrentAnchor++;
                 } while (Global_u8CurrentAnchor < CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor]);
 
-                if (Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
-                {
-                    uint8_t i=0;
-                    for (i = 0; i < CAN_ANCHOR_MAX ;i++)
-                        Global_PEDone[i]=0;
-                    
-                    UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
-                    currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-                    APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
-                    break;
-                }
+                
                 break;
 
             case EVENT_SECONDARY_PE_FAILED:
@@ -188,12 +179,12 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 {
                     Global_u8PERetryCount++;
                     snprintf(buffer, sizeof(buffer), "\n[WARNING] Passive Entry failed on anchor %d. Retrying attempt %d/%d...\n",
-                            Global_u8CurrentAnchor, Global_u8PERetryCount, MAX_PE_RETRIES);
+                            Global_u8CurrentAnchor+1, Global_u8PERetryCount, MAX_PE_RETRIES);
                     UART_SendMessage(buffer);
                 }
                 else
                 {
-                    snprintf(buffer, sizeof(buffer), "\n[ERROR] Passive Entry failed on anchor %d after maximum retries. Moving to next anchor...\n", Global_u8CurrentAnchor);
+                    snprintf(buffer, sizeof(buffer), "\n[ERROR] Passive Entry failed on anchor %d after maximum retries. Moving to next anchor...\n", Global_u8CurrentAnchor+1);
                     UART_SendMessage(buffer);
                     Global_u8PERetryCount = 0;
                     do {
@@ -205,9 +196,25 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
         if (Global_u8CurrentAnchor < CAN_ANCHOR_MAX)
         {
-            snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
+            snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor+1);
             UART_SendMessage(buffer);
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, 0);
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor+1, 0);
+        }
+        else if (Global_u8CurrentAnchor >= CAN_ANCHOR_MAX && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
+        {
+            uint8_t i=0;
+            for (i = 0; i < CAN_ANCHOR_MAX ;i++)
+                Global_PEDone[i]=0;
+            // Initialize PE process
+            Global_u8CurrentAnchor = 0;
+            Global_u8SuccessPE = 0;
+            Global_u8FirstTime = 1;
+            Global_u8PERetryCount = 0;
+            
+            UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
+            currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+            break;
         }
         break;
 

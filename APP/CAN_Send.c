@@ -32,7 +32,18 @@
 uint8_t Global_u8PEorTDM;
 #endif
 
-char loc_cPrintBuffer[256];     // Buffer for formatted print output
+
+
+char loc_cPrintBuffer[2048];     // Buffer for formatted print output
+
+const char* CAN_CommandStrings[] = {
+    "CAN_COMMAND_TRIGGER_OWNER_PAIRING",
+    "CAN_COMMAND_TRIGGER_PASSIVE_ENTRY",
+    "CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT",
+    "CAN_COMMAND_STOP_DISTANCE_MEASURMENT",
+    "CAN_COMMAND_RESET",
+    "CAN_COMMAND_INVALID"
+};
 
 #if (CAN_ENABLE_HANDOVER)
 // Global variable to track handover message sending count
@@ -342,8 +353,8 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
     UART_SendMessage("============================\n");
 
     snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer),
-             "[INFO] Command Sent:\n  - Command ID  : %d\n  - Receiver ID : %d\n  - Data        : %d\n",
-             Copy_enuCommand, Copy_u8ReceiverId, Copy_u8Data);
+             "[INFO] Command Sent:\n  - Command ID  : %s\n  - Receiver ID : %d\n  - Data        : %d\n",
+             CAN_CommandStrings[Copy_enuCommand], Copy_u8ReceiverId, Copy_u8Data);
     UART_SendMessage(loc_cPrintBuffer);
     UART_SendMessage("\n============================\n\n");
 #endif
