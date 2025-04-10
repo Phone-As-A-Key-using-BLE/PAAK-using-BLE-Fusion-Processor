@@ -8,6 +8,7 @@
 /********************************************************************/
 
 #include "CAN_App.h"
+#include "APP_FSM.h"
 #include <string.h>
 #include <stdio.h>
 /* Include are customized either to anchor which is NXP KW45
@@ -357,6 +358,41 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
              CAN_CommandStrings[Copy_enuCommand], Copy_u8ReceiverId, Copy_u8Data);
     UART_SendMessage(loc_cPrintBuffer);
     UART_SendMessage("\n============================\n\n");
+#endif
+}
+/**
+ * @brief Sends ranging type of device over CAN bus.
+ * 
+ * @param Copy_u8DeviceId Device ID
+ * @param Copy_enuRangingType Ranging Type RSSI or CS.
+ */
+void CAN_voidSendRangingType(APP_tenuRangingType* Copy_enuRangingType){
+
+    // Send wakeup notification message
+    CAN_voidSendMsg(CAN_ID_RANGING_TYPE, (uint8_t*)Copy_enuRangingType);
+
+    // Print formatted wakeup notification details after data is sent
+#if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
+    char* Loc_u8RangingTypeNameForDebug [] ={"Not Determined","RSSI","CS"};
+    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n============================\n");
+    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "CAN Ranging Type             \n");
+    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n");
+
+    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "[INFO] Sending ranging type for device %d which is %s\n",Copy_u8DeviceId,Loc_u8RangingTypeNameForDebug[Copy_enuRangingType]);
+    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
+    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n\n");
+
+#else
+    char* Loc_u8RangingTypeNameForDebug [] ={"Not Determined","RSSI","CS"};
+    UART_SendMessage("\n============================\n");
+    UART_SendMessage("CAN Ranging Type              \n");
+    UART_SendMessage("============================\n");
+    uint8_t i=0;
+    for (i=0;i<1;i++) {
+        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "[INFO] Sending ranging type for device %d which is %s\n" ,i,Loc_u8RangingTypeNameForDebug[Copy_enuRangingType[i]]);
+    }
+    UART_SendMessage(loc_cPrintBuffer);
+    UART_SendMessage("============================\n\n");
 #endif
 }
 

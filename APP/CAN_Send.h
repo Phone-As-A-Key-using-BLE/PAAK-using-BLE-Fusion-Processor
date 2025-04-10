@@ -97,6 +97,12 @@ void CAN_voidSendPeResponse(CAN_tenumPeResponse Copy_enuResponse, uint8_t Copy_u
  */
 void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Data);
 
+/**
+ * @brief Sends ranging type of devices over CAN bus.
+ * 
+ * @param Add_enuRangingType Array of ranging types of devices
+ */
+void CAN_voidSendRangingType(APP_tenuRangingType* Add_enuRangingType);
 #endif
 
 #endif /* CAN_SEND_H_ */

@@ -85,6 +85,13 @@ typedef enum{
     TDM
 }CAN_tenuDistanceType;
 
+typedef enum{
+    APP_NOT_DETERMINED,
+    APP_RSSI,
+    APP_CS
+}APP_tenuRangingType;
+
+
 
 #define CAN_RESET_ALL   0
 

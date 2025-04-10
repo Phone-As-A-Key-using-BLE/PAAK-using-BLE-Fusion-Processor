@@ -17,7 +17,8 @@
 #include "shell_print.h"
 #endif
 extern uint8_t Global_u8CurrentAnchor; // Temp Solution
-
+extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
+extern uint8_t lock;
 
 /* ---------------------------------------------------------------------------
  * Data structures mirroring NXP-based variables
@@ -64,6 +65,9 @@ void CAN0_Handler(void)
         return;
     }
 
+    /* Clear the interrupt for this message object. */
+    CANIntClear(CAN0_BASE, ui32Status);
+
     /* Retrieve the message and parse it. */
     tCANMsgObject rxMsg;
     uint8_t rxData[8];
@@ -74,8 +78,16 @@ void CAN0_Handler(void)
     /* Parse the already-read message. */
     CAN_voidParseReceivedFrame(&rxMsg, rxData);
 
-    /* Clear the interrupt for this message object. */
-    CANIntClear(CAN0_BASE, ui32Status);
+    if(lock){
+        //Reset the RX object to clear everything and be ready for next one
+        rxMsg.ui32Flags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
+        rxMsg.ui32MsgID = 0x100;
+        rxMsg.ui32MsgIDMask = 0x700;
+        rxMsg.ui32MsgLen = 8;
+        rxMsg.pui8MsgData = 0;
+
+        CANMessageSet(CAN0_BASE, MSG_OBJ_RX_1, &rxMsg, MSG_OBJ_TYPE_RX);
+    }
 }
 uint8_t counter=0;
 /* ---------------------------------------------------------------------------
@@ -201,20 +213,25 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         /* RSSI messages -------------------------------------------------- */
         case CAN_ID_RSSI_A1:
-            if (Global_u8CurrentAnchor != CAN_ANCHOR_1) {
+            // if (Global_u8CurrentAnchor == CAN_ANCHOR_1) {
                 parseRssiData(messageId, rxData);
-            }
+                lock=1;
+            // }
             break;
         case CAN_ID_RSSI_A2:
-            if (Global_u8CurrentAnchor != CAN_ANCHOR_2) {
+            // if (Global_u8CurrentAnchor == CAN_ANCHOR_2) {
                 parseRssiData(messageId, rxData);
-            }
+            // }
             break;
         case CAN_ID_RSSI_A3:
-            if (Global_u8CurrentAnchor != CAN_ANCHOR_3) {
+            // if (Global_u8CurrentAnchor == CAN_ANCHOR_3) {
                 parseRssiData(messageId, rxData);
-            }
+            // }
             break;
+        case CAN_ID_RANGING_TYPE_A1:
+            Global_u8DevicesRangingType[rxData[0]] = rxData[1];
+            break;
+
 
         default:
         {
