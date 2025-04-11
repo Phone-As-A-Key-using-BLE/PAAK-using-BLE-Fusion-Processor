@@ -333,9 +333,6 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
     loc_u8CanData[1] = Copy_u8ReceiverId; // Store receiver ID
     loc_u8CanData[2] = Copy_u8Data;       // Store Data either device ID or Anchor ID
 
-    // Send command message before printing the output
-    CAN_voidSendMsg(CAN_ID_COMMANDS, loc_u8CanData);
-
     // Print formatted command transmission details after data is sent
 #if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
     SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n============================\n");
@@ -359,6 +356,9 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
     UART_SendMessage(loc_cPrintBuffer);
     UART_SendMessage("\n============================\n\n");
 #endif
+
+    // Send command message before printing the output
+    CAN_voidSendMsg(CAN_ID_COMMANDS, loc_u8CanData);
 }
 /**
  * @brief Sends ranging type of device over CAN bus.

@@ -18,7 +18,7 @@
 #endif
 extern uint8_t Global_u8CurrentAnchor; // Temp Solution
 extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
-extern uint8_t lock;
+
 
 /* ---------------------------------------------------------------------------
  * Data structures mirroring NXP-based variables
@@ -78,7 +78,7 @@ void CAN0_Handler(void)
     /* Parse the already-read message. */
     CAN_voidParseReceivedFrame(&rxMsg, rxData);
 
-    if(lock){
+    // if(lock){
         //Reset the RX object to clear everything and be ready for next one
         rxMsg.ui32Flags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
         rxMsg.ui32MsgID = 0x100;
@@ -87,7 +87,7 @@ void CAN0_Handler(void)
         rxMsg.pui8MsgData = 0;
 
         CANMessageSet(CAN0_BASE, MSG_OBJ_RX_1, &rxMsg, MSG_OBJ_TYPE_RX);
-    }
+    // }
 }
 uint8_t counter=0;
 /* ---------------------------------------------------------------------------
@@ -215,7 +215,6 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         case CAN_ID_RSSI_A1:
             // if (Global_u8CurrentAnchor == CAN_ANCHOR_1) {
                 parseRssiData(messageId, rxData);
-                lock=1;
             // }
             break;
         case CAN_ID_RSSI_A2:

@@ -32,17 +32,17 @@ uint8_t Global_u8CurrentAnchor=CAN_PRIMARY_ANCHOR;
 uint8_t Global_u8SuccessPE=0; // Success Passive Entry
 uint8_t Global_u8FirstTime=1; 
 uint8_t Global_u8PERetryCount=0;
-uint8_t lock=1;
+uint8_t lock=0;
 uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
 
 
 //Fusion
 Particle particles[NUM_PARTICLES];
 uint8_t volatile firstTimeFlag = 1;
-
+uint8_t Loc_u8CurrentDeviceId = 0;
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 {
-    uint8_t Loc_u8CurrentDeviceId = 0;
+  
     switch (currentState)
     {
     // **IDLE STATE**: System is waiting for user input
@@ -209,8 +209,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         {
             snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
             UART_SendMessage(buffer);
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
-            lock=0;
+            // CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
+            lock=1;
             break;
         }
         else if (Global_u8CurrentAnchor > CAN_ANCHOR_MAX && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
