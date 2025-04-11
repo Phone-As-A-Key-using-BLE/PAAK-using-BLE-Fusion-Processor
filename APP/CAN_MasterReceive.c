@@ -90,6 +90,7 @@ void CAN0_Handler(void)
     // }
 }
 uint8_t counter=0;
+uint8_t isBondingDataReceived=0;
 /* ---------------------------------------------------------------------------
  * CAN_voidParseReceivedFrame
  * ---------------------------------------------------------------------------*/
@@ -100,7 +101,9 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
     switch (messageId)
     {
         case CAN_ID_BONDING_DATA:
-            parseBondingData(pRxMsg, rxData);
+            if(!isBondingDataReceived){
+                parseBondingData(pRxMsg, rxData);
+            }
             break;
 
         /* Distance messages ---------------------------------------------- */
@@ -358,6 +361,7 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
             UART_SendMessage ("Bonding data fully received.\r\n");
             APP_voidFSMHandler(EVENT_BONDING_DATA_RECEIVED);
             s_bondingDataCounter = 0;
+            isBondingDataReceived=1;
             break;
 
         default:
