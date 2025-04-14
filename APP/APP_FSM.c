@@ -11,7 +11,7 @@
 #include "APP/can_msg_types.h"
 #include "APP/CAN_Send.h"
 #include "APP/CAN_MasterReceive.h"
-
+#include "DeviceRangingTypeManager.h"
 #include "APP/CAN_App.h"
 
 
@@ -21,6 +21,10 @@
 #include "APP/Fusion/Trilateration.h"
 #include "APP/Fusion/Particle.h"
 
+void delay_ms(uint32_t ms) {
+    // 1 ms delay = (SysClk / 3) / 1000 loops
+    SysCtlDelay((SysCtlClockGet() / 3) / 1000 * ms);
+}
 
 char buffer[1024]; // for debugging
 
@@ -33,8 +37,6 @@ uint8_t Global_u8SuccessPE=0; // Success Passive Entry
 uint8_t Global_u8FirstTime=1; 
 uint8_t Global_u8PERetryCount=0;
 uint8_t lock=0;
-uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
-
 
 //Fusion
 Particle particles[NUM_PARTICLES];
@@ -84,6 +86,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         {
             currentState = STATE_PRIMARY_PE;
             UART_SendMessage("\n[INFO] Wake-up signal received. Triggering Passive Entry (PE) on primary anchor...\n");
+            DeviceStateManager_Update(Loc_u8CurrentDeviceId, APP_CS);
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
 
         }
@@ -100,13 +103,13 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         else if (Copy_structEvent == EVENT_PRIMARY_PE_FAILED)
         {
             currentState = STATE_PRIMARY_PE;
-            UART_SendMessage("\n[ERROR] Primary Passive Entry failed. Reverting to bonding data state to reset and trigger PE again...\n");
+            UART_SendMessage("\n[ERROR] Primary Passive Entry failed. Trigger PE again...\n");
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
         }
         else if (Copy_structEvent == EVENT_PRIMARY_WAKEUP_RECEIVED)
         {
             currentState = STATE_PRIMARY_TDM;
-            CAN_voidSendRangingType(Global_u8DevicesRangingType);
+            DeviceStateManager_Update(Loc_u8CurrentDeviceId, APP_RSSI);
             UART_SendMessage("\n[INFO] CS is not supported in mobile. Turning to RSSI...\n");
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
         }
@@ -121,12 +124,15 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
             if (!Global_u8FirstTime)
             {
+                currentState = STATE_PRIMARY_TDM;
                 // Trigger distance measurement when the device is out of range
                 CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
-                Global_u8FirstTime = 0;
+                break;
             }
+            Global_u8FirstTime = 0;
 
-            uint8_t Loc_u8Distance = CAN_structGetDistanceData().distanceIntegerPart;
+            // uint8_t Loc_u8Distance = CAN_structGetDistanceData().distanceIntegerPart;
+             uint8_t Loc_u8Distance = 4;
             if (Loc_u8Distance <= APP_DISTANCE_TRIGGER_THRESHOLD)
             {
                 APP_voidFSMHandler(EVENT_DISTANCE_BELOW_THRESHOLD);
@@ -140,18 +146,18 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
     // **WAKE-UP DECISION MAKING**: Decide next action based on distance
     case STATE_WAKEUP_DECISION_MAKING:
-        if (Copy_structEvent == EVENT_DISTANCE_ABOVE_THRESHOLD)
-        {
-            currentState = STATE_PRIMARY_TDM;
-            UART_SendMessage("\n[INFO] Distance above threshold. Retrying distance measurement...\n");
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
-        }
-        else if (Copy_structEvent == EVENT_DISTANCE_BELOW_THRESHOLD)
+        if (Copy_structEvent == EVENT_DISTANCE_BELOW_THRESHOLD)
         {
             currentState = STATE_SECONDARY_PE;
             UART_SendMessage("\n[INFO] Device is in range. Initiating Secondary Passive Entry (PE)...\n");
             Global_u8FirstTime = 1;
             APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
+        }
+        else if (Copy_structEvent == EVENT_DISTANCE_ABOVE_THRESHOLD)
+        {
+            currentState = STATE_PRIMARY_TDM;
+            UART_SendMessage("\n[INFO] Distance above threshold. Retrying distance measurement...\n");
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
         }
         break;
 
@@ -209,7 +215,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         {
             snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
             UART_SendMessage(buffer);
-            // CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
+            //CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
             lock=1;
             break;
         }
