@@ -7,6 +7,7 @@
 /* Copyright: Sponsored by Ejad                                     */
 /********************************************************************/
 
+#include "DeviceRangingTypeManager.h"
 #include "CAN_App.h"
 #include "APP_FSM.h"
 #include <string.h>
@@ -36,6 +37,7 @@ uint8_t Global_u8PEorTDM;
 
 
 char loc_cPrintBuffer[2048];     // Buffer for formatted print output
+extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
 
 const char* CAN_CommandStrings[] = {
     "CAN_COMMAND_TRIGGER_OWNER_PAIRING",
@@ -332,6 +334,14 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
     loc_u8CanData[0] = Copy_enuCommand;   // Store command ID
     loc_u8CanData[1] = Copy_u8ReceiverId; // Store receiver ID
     loc_u8CanData[2] = Copy_u8Data;       // Store Data either device ID or Anchor ID
+    
+    if(Copy_enuCommand == CAN_COMMAND_TRIGGER_PASSIVE_ENTRY || Copy_enuCommand == CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT)
+    {
+        loc_u8CanData[3] = DeviceStateManager_Load(Copy_u8Data);
+        if(loc_u8CanData[3] != APP_RSSI)
+            loc_u8CanData[3] = APP_CS;
+
+    }
 
     // Print formatted command transmission details after data is sent
 #if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
@@ -350,9 +360,18 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
     UART_SendMessage("CAN Command Transmission           \n");
     UART_SendMessage("============================\n");
 
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer),
-             "[INFO] Command Sent:\n  - Command ID  : %s\n  - Receiver ID : %d\n  - Data        : %d\n",
+    if(Copy_enuCommand == CAN_COMMAND_TRIGGER_PASSIVE_ENTRY || Copy_enuCommand == CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT)
+    {
+        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer),
+             "[INFO] Command Sent :\n  - Command ID : %s\n  - Receiver ID : %d\n  - Device ID : %d\n - Ranging Type : %d\n",
+             CAN_CommandStrings[Copy_enuCommand], Copy_u8ReceiverId, Copy_u8Data,loc_u8CanData[3]);
+
+    }
+    else{
+        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer),
+             "[INFO] Command Sent :\n  - Command ID : %s\n  - Receiver ID : %d\n  - Device ID : %d\n",
              CAN_CommandStrings[Copy_enuCommand], Copy_u8ReceiverId, Copy_u8Data);
+    }
     UART_SendMessage(loc_cPrintBuffer);
     UART_SendMessage("\n============================\n\n");
 #endif
@@ -367,9 +386,14 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
  * @param Copy_enuRangingType Ranging Type RSSI or CS.
  */
 void CAN_voidSendRangingType(APP_tenuRangingType* Copy_enuRangingType){
+    uint8_t loc_u8CanData[8] = {0}; // Local array for CAN message data
+    uint8_t i=0;
+    for (; i<APP_MAX_NO_OF_DEVICES; i++) {
+        loc_u8CanData[i] = (uint8_t)Copy_enuRangingType[i];
+    }
 
     // Send wakeup notification message
-    CAN_voidSendMsg(CAN_ID_RANGING_TYPE, (uint8_t*)Copy_enuRangingType);
+    CAN_voidSendMsg(CAN_ID_RANGING_TYPE, loc_u8CanData);
 
     // Print formatted wakeup notification details after data is sent
 #if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
@@ -387,7 +411,6 @@ void CAN_voidSendRangingType(APP_tenuRangingType* Copy_enuRangingType){
     UART_SendMessage("\n============================\n");
     UART_SendMessage("CAN Ranging Type              \n");
     UART_SendMessage("============================\n");
-    uint8_t i=0;
     for (i=0;i<1;i++) {
         snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "[INFO] Sending ranging type for device %d which is %s\n" ,i,Loc_u8RangingTypeNameForDebug[Copy_enuRangingType[i]]);
     }
