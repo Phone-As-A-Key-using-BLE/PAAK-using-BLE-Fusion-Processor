@@ -37,6 +37,7 @@ uint8_t anchorID = 0;
 /* Debug print buffer */
 char msg[1024];
 
+extern APP_tenuStates currentState;
 
 
 RSSIData_t gRSSIData = {0};
@@ -175,7 +176,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else
             {
-                APP_voidFSMHandler(EVENT_PRIMARY_PE_FAILED);
+                if(Global_u8CurrentAnchor == rxData[2] && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
+                    APP_voidFSMHandler(EVENT_PRIMARY_PE_FAILED);
             }
             break;
 
@@ -186,7 +188,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else
             {
-                APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+                if(Global_u8CurrentAnchor == rxData[2] && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
+                    APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
             }
             break;
 
@@ -197,20 +200,24 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else
             {
-                APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+                if(Global_u8CurrentAnchor == rxData[2] && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
+                    APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
             }
             break;
 
         /* Wake-up notification messages ---------------------------------- */
         case CAN_ID_WAKEUP_NOTIFICATION_A1:
+            //CAN_voidSendRangingType(Global_u8DevicesRangingType);
             APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
+            //CAN_voidSendRangingType(Global_u8DevicesRangingType);
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
+            //CAN_voidSendRangingType(Global_u8DevicesRangingType);
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
@@ -231,7 +238,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             // }
             break;
         case CAN_ID_RANGING_TYPE_A1:
-            Global_u8DevicesRangingType[rxData[0]] = rxData[1];
+            //Global_u8DevicesRangingType[rxData[0]] = rxData[1];
             break;
 
 
