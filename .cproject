@@ -96,6 +96,11 @@
                             <tool id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.hex.1854467004" name="Arm Hex Utility" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.hex"/>
                         </toolChain>
                     </folderInfo>
+                    <fileInfo id="com.ti.ccstudio.buildDefinitions.TMS470.Debug.965811999.APP/CAN_Send.c" name="CAN_Send.c" rcbsApplicability="disable" resourcePath="APP/CAN_Send.c" toolsToInvoke="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145.1933437075">
+                        <tool id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145.1933437075" name="Arm Compiler" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145">
+                            <option id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.OPT_LEVEL.1207733481" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.OPT_LEVEL" value="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.OPT_LEVEL.off" valueType="enumerated"/>
+                        </tool>
+                    </fileInfo>
                     <fileInfo id="com.ti.ccstudio.buildDefinitions.TMS470.Debug.965811999.APP/APP_FSM.c" name="APP_FSM.c" rcbsApplicability="disable" resourcePath="APP/APP_FSM.c" toolsToInvoke="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145.1635975370">
                         <tool id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145.1635975370" name="Arm Compiler" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145">
                             <option id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.PREINCLUDE.1060122900" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.PREINCLUDE" valueType="includeFiles"/>
