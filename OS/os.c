@@ -429,6 +429,7 @@ void OS_Init(void) {
     UART_Init();
     ADC_Init();
     NVM_Init();
+    DeviceStateManager_Init();
 
 
     //CAN_ConfigureReceiveObjects();
