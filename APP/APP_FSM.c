@@ -131,8 +131,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             }
             Global_u8FirstTime = 0;
 
-            // uint8_t Loc_u8Distance = CAN_structGetDistanceData().distanceIntegerPart;
-             uint8_t Loc_u8Distance = 4;
+            uint8_t Loc_u8Distance = CAN_structGetDistanceData().distanceIntegerPart;
+            //  uint8_t Loc_u8Distance = 4;
             if (Loc_u8Distance <= APP_DISTANCE_TRIGGER_THRESHOLD)
             {
                 APP_voidFSMHandler(EVENT_DISTANCE_BELOW_THRESHOLD);
