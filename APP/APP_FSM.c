@@ -277,9 +277,6 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
     // **FUSION ALGORITHM STATE**: Execute sensor fusion
     case STATE_FUSION_ALGO:
-        UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
-        currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-        //Add fusion Algo
         
 
         /******* Add functions for distance 3 calculations  *******/
@@ -301,7 +298,9 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         Master_resample(particles);
         Master_estimate(particles,estimate_final);
 
-
+        UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
+        currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
+        //Add fusion Algo
         APP_voidFSMHandler(EVENT_FINAL_DISTANCE);
         break;
 
