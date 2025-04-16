@@ -14,8 +14,8 @@
 #define NUM_OF_ANCHORS 3
 
 
-typedef struct object_list
-{
+
+typedef struct{
 	// uint8_t deviceId : 4;	/* Maximum 16 devices to be registered for one car */
 	float32 distance ;		/* Maximum 2048 cm ~ 20 m that the BLE can reach (to be checked again in the open space)*/	
 	uint8 mesgId;
@@ -26,7 +26,7 @@ void matrix_multiply(float64 *A, float64 *B, float64 *result, sint32 m, sint32 n
 void matrix_transpose(float64 *A, float64 *result, sint32 n, sint32 m);
 sint32 matrix_inverse(float64 *A, float64 *result);
 
-Measurement_Type Master_trilaterate_position(object_list arr_object_list[NUM_OF_ANCHORS]);
+Measurement_Type Master_trilaterate_position(object_list* arr_object_list);
 
 
 #endif /* SENSOR_FUSION_H_ */

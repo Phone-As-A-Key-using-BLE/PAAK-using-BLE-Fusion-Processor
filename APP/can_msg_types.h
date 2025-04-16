@@ -95,16 +95,6 @@ typedef enum{
 
 #define CAN_RESET_ALL   0
 
-// typedef struct object_list
-// {
-//     uint8_t deviceId : 4;   /* Maximum 16 devices to be registered for one car */
-//     uint32_t cycleId : 25;  /* Maximum cycle Id is 33554432 then to be reset */
-//     uint8_t angle;          /* Assumption that the angle will be Natural number in degrees (45�)*/
-//     uint16_t distance : 11; /* Maximum 2048 cm ~ 20 m that the BLE can reach (to be checked again in the open space)*/
-//     uint8_t accuracy : 2;   /* Maximum ( + | -) 4 meter  error of accuracy */
-//     uint8_t confidence : 4; /* Range of confidence from 0 (Low Confidence) -> 16 (High Confidence) */
-//     uint16_t mesgId;
-// } object_list;
 
 typedef struct add_device
 {

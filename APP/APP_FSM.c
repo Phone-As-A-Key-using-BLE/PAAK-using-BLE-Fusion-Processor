@@ -13,7 +13,7 @@
 #include "APP/CAN_MasterReceive.h"
 #include "DeviceRangingTypeManager.h"
 #include "APP/CAN_App.h"
-
+#include "APP/RssiManager.h"
 
 #include "APP/APP_FSM.h"
 
@@ -27,10 +27,11 @@ void delay_ms(uint32_t ms) {
 }
 
 char buffer[1024]; // for debugging
-
+/* Debug print buffer */
+char msg[1024];
 APP_tenuStates currentState = STATE_IDLE;
 
-uint8_t Global_PEDone[CAN_ANCHOR_MAX]={0,0,0};
+uint8_t Global_PEDone[CAN_ANCHOR_MAX+1]={0,0,0,0};
 double_t Global_f64Readings[CAN_ANCHOR_MAX+1] = {0,0,0,0};
 uint8_t Global_u8CurrentAnchor=CAN_PRIMARY_ANCHOR;
 uint8_t Global_u8SuccessPE=0; // Success Passive Entry
@@ -38,14 +39,17 @@ uint8_t Global_u8FirstTime=1;
 uint8_t Global_u8PERetryCount=0;
 uint8_t lock=0;
 extern uint8_t isBondingDataReceived;
-
+RSSIData_t targetData;
+extern RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1];
 //Fusion
 Particle particles[NUM_PARTICLES];
 uint8_t volatile firstTimeFlag = 1;
 uint8_t Loc_u8CurrentDeviceId = 0;
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 {
-  
+    object_list testObj[CAN_ANCHOR_MAX];
+    double_t estimate_final[2];
+    Measurement_Type measureA;
     switch (currentState)
     {
     // **IDLE STATE**: System is waiting for user input
@@ -178,8 +182,14 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             case EVENT_RECEIVE_DISTANCE:
                 Global_u8SuccessPE++;
                 Global_PEDone[Global_u8CurrentAnchor] = 1;
-                Global_f64Readings[Global_u8CurrentAnchor] = (double_t)(CAN_structGetDistanceData().distanceIntegerPart + CAN_structGetDistanceData().distanceDecimalPart/100.0);
-
+                //RSSI_EEPROM_ReadRSSIData(Global_u8CurrentAnchor,&targetData);
+                //Global_f64Readings[Global_u8CurrentAnchor] = (double_t)(targetData.distance/100.0);
+                Global_f64Readings[Global_u8CurrentAnchor] = (double_t)(gRSSIData[Global_u8CurrentAnchor].distance/100.0);
+                    /* Log the parsed data */
+                snprintf(msg, sizeof(msg),
+                        "RSSI FSM Data - Distance: %d\r\n",
+                        gRSSIData[Global_u8CurrentAnchor].distance);
+                UART_SendMessage(msg);
                 snprintf(buffer, sizeof(buffer), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor);
                 UART_SendMessage(buffer);
 
@@ -213,7 +223,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 break;
         }
 
-        if (Global_u8CurrentAnchor < CAN_ANCHOR_MAX)
+        if (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX)
         {
             snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
             UART_SendMessage(buffer);
@@ -221,7 +231,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             lock=1;
             break;
         }
-        else if (Global_u8CurrentAnchor > CAN_ANCHOR_MAX && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
+        else if (Global_u8CurrentAnchor >= CAN_ANCHOR_MAX && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
         {
             uint8_t i=0;
             for (i = 0; i < CAN_ANCHOR_MAX ;i++)
@@ -281,11 +291,16 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
         /******* Add functions for distance 3 calculations  *******/
         //Global_f64Readings[2] = ???
-        object_list testObj [NUM_OF_ANCHORS] = {
-        {Global_f64Readings[0],1},{Global_f64Readings[1],2},{Global_f64Readings[2],3}
-          };
-        double_t estimate_final[2]={0,0};
-        Measurement_Type measureA = Master_trilaterate_position(testObj);
+        // For testObj array:
+        testObj[0] = (object_list){Global_f64Readings[1], 1};
+        testObj[1] = (object_list){Global_f64Readings[2], 2};
+        testObj[2] = (object_list){Global_f64Readings[3], 3};
+
+        // For estimate_final array:
+        estimate_final[0] = 0;
+        estimate_final[1] = 0;
+        measureA = Master_trilaterate_position(testObj);
+
 
         //Particle filter
         if (firstTimeFlag){

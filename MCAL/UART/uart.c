@@ -120,7 +120,7 @@ void UART_SendNumber(uint32_t number) {
 
     // Send the string using UART
     UART_SendMessage(buffer);  // Assuming UART_SendMessage is your function to send strings
-    UART_SendMessage("\r\n");     // Print the unit
+    UART_SendMessage("\r\n");     // Printï¿½theï¿½unit
 }
 
 void UART_ProcessCommand(const char *command) {
@@ -198,7 +198,7 @@ void UART_SendNumberConnectivity(uint8_t number) {
 
     // Send the string using UART
     UART_SendMessage(buffer);  // Assuming UART_SendMessage is your function to send strings
-    UART_SendMessage("\r\n");     // Print the unit
+    UART_SendMessage("\r\n");     // Printï¿½theï¿½unit
 }
 void UART_SendHexConnectivity(uint8_t *dataArray, uint8_t stopIndex) {
     uint8_t i = 0;

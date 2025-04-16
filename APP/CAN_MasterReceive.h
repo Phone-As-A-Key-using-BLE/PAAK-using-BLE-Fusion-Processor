@@ -23,8 +23,8 @@
 // Structures to store parsed data
 typedef struct {
     uint8_t deviceId;
-    uint16_t procNo;
     uint8_t distanceIntegerPart;
+    uint16_t procNo;
     uint16_t distanceDecimalPart;
     float dqiPercentage;
 } CAN_tstrDistance;
@@ -39,12 +39,9 @@ typedef struct {
     uint8_t averageRssi;
     uint8_t confidence;
     uint8_t accuracy;
-    uint16_t distance;
     uint8_t anchorId; // Indicates which anchor the data belongs to
+    uint16_t distance;
 } RSSIData_t;
-
-// Global variables
-extern RSSIData_t gRSSIData;
 
 // Function declarations
 void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
