@@ -4,18 +4,24 @@
 // * Purpose: Entry point for the Master ECU. Uses OS Layer for task management.
 //*/
 
+#include "CAN_App.h"
 #include "OS/os.h"
 #include "Connectivity/connectivity.h"
 #include "UART/uart.h"
 #include "APP/can_msg_types.h"
 #include "APP/CAN_Send.h"
+#include "APP/APP_FSM.h"
 extern uint8_t lock;
 extern uint8_t Loc_u8CurrentDeviceId;
 extern uint8_t Global_u8CurrentAnchor;
+extern APP_tenuStates currentState;
+extern uint8_t isBondingDataReceived;
  int main(void)
 {
     OS_Init();
-
+    isBondingDataReceived=1;
+    currentState = STATE_PRIMARY_TDM;
+    CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
     // Main loop to keep checking for incoming messages
     while (1)
     {

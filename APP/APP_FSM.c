@@ -37,6 +37,7 @@ uint8_t Global_u8SuccessPE=0; // Success Passive Entry
 uint8_t Global_u8FirstTime=1; 
 uint8_t Global_u8PERetryCount=0;
 uint8_t lock=0;
+extern uint8_t isBondingDataReceived;
 
 //Fusion
 Particle particles[NUM_PARTICLES];
@@ -63,6 +64,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_SEND_OWNER_PAIRING_COMMAND)
         {
             currentState = STATE_WAITING_FOR_BONDING_DATA;
+            isBondingDataReceived=0;
             UART_SendMessage("\n[INFO] Sending owner pairing command to primary anchor...\n");
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_OWNER_PAIRING, CAN_PRIMARY_ANCHOR, 0);
         }
