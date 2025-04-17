@@ -37,12 +37,12 @@ uint8_t isTDM    = 0;
 uint8_t anchorID = 0;
 
 /* Debug print buffer */
-char msg[1024];
+char msg[256];
 
 extern APP_tenuStates currentState;
 
 
-volatile RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1];
+volatile RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1]= {0};
 
 
 /* ---------------------------------------------------------------------------
