@@ -9,7 +9,6 @@
 #include "can_msg_types.h"
 #include "CAN_MasterReceive.h"
 #include "CAN_App.h"
-#include "RssiManager.h"
 #include "sys/cdefs.h"
 
 #if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
@@ -210,7 +209,12 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         /* Wake-up notification messages ---------------------------------- */
         case CAN_ID_WAKEUP_NOTIFICATION_A1:
             //CAN_voidSendRangingType(Global_u8DevicesRangingType);
-            APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+            if(currentState == STATE_IDLE){
+                currentState = STATE_PRIMARY_TDM;
+                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
+            }
+            else
+                APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
@@ -387,40 +391,29 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
  * ---------------------------------------------------------------------------*/
 static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
 {
-    RSSIData_t* targetData = NULL;
-
     /* Determine the target structure based on the message ID */
     switch (messageId)
     {
         case CAN_ID_RSSI_A1:
-            //targetData = &gRSSIData[CAN_ANCHOR_1];
             gRSSIData[CAN_ANCHOR_1].averageRssi = rxData[0];
             gRSSIData[CAN_ANCHOR_1].confidence = rxData[1];
             gRSSIData[CAN_ANCHOR_1].accuracy = rxData[2];
             gRSSIData[CAN_ANCHOR_1].distance = ((uint16_t)rxData[3] << 8) | rxData[4];
             gRSSIData[CAN_ANCHOR_1].anchorId = 1;
-            RSSI_EEPROM_WriteRSSIData(CAN_ANCHOR_1,&gRSSIData[CAN_ANCHOR_1]);
-            //targetData->anchorId = 1;
             break;
         case CAN_ID_RSSI_A2:
-            //targetData = &gRSSIData[CAN_ANCHOR_2];
             gRSSIData[CAN_ANCHOR_2].averageRssi = rxData[0];
             gRSSIData[CAN_ANCHOR_2].confidence = rxData[1];
             gRSSIData[CAN_ANCHOR_2].accuracy = rxData[2];
             gRSSIData[CAN_ANCHOR_2].distance = ((uint16_t)rxData[3] << 8) | rxData[4];
             gRSSIData[CAN_ANCHOR_2].anchorId = 2;
-            RSSI_EEPROM_WriteRSSIData(CAN_ANCHOR_2,&gRSSIData[CAN_ANCHOR_2]);
-            //targetData->anchorId = 2;
             break;
         case CAN_ID_RSSI_A3:
-            //targetData = &gRSSIData[CAN_ANCHOR_3];
             gRSSIData[CAN_ANCHOR_3].averageRssi = rxData[0];
             gRSSIData[CAN_ANCHOR_3].confidence = rxData[1];
             gRSSIData[CAN_ANCHOR_3].accuracy = rxData[2];
             gRSSIData[CAN_ANCHOR_3].distance = ((uint16_t)rxData[3] << 8) | rxData[4];
             gRSSIData[CAN_ANCHOR_3].anchorId = 3;
-            RSSI_EEPROM_WriteRSSIData(CAN_ANCHOR_3,&gRSSIData[CAN_ANCHOR_3]);
-            //targetData->anchorId = 3;
             break;
         default:
             return; // Unknown message ID

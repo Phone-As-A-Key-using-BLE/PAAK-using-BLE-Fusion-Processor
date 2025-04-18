@@ -13,7 +13,6 @@
 #include "APP/CAN_MasterReceive.h"
 #include "DeviceRangingTypeManager.h"
 #include "APP/CAN_App.h"
-#include "APP/RssiManager.h"
 
 #include "APP/APP_FSM.h"
 
