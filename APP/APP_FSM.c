@@ -28,8 +28,8 @@ char gArr_DebugMsg[512];
 
 APP_tenuStates currentState = STATE_IDLE;
 
-uint8_t Global_PEDone[CAN_ANCHOR_MAX+1] = {0,0,0,0};
-double_t Global_f64Readings[CAN_ANCHOR_MAX+1] = {0,0,0,0};
+uint8_t Global_PEDone[CAN_ANCHOR_MAX+1] = {0};
+double_t Global_f64Readings[CAN_ANCHOR_MAX+1] = {0};
 uint8_t Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
 uint8_t Global_u8SuccessPE = 0; // Success Passive Entry
 uint8_t Global_u8FirstTime = 1; 
@@ -39,7 +39,7 @@ extern uint8_t isBondingDataReceived;
 RSSIData_t targetData;
 extern RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1];
 //Fusion
-Particle particles[NUM_PARTICLES] = {0};
+Particle particles[NUM_PARTICLES];
 uint8_t volatile firstTimeFlag = 1;
 uint8_t Loc_u8CurrentDeviceId = 0;
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
@@ -78,8 +78,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             currentState = STATE_WAITING_FOR_PRIMARY_WAKEUP;
 
             UART_SendMessage("\n[INFO] Bonding data received. Waiting for wake-up signal from primary anchor...\n");
-            uint32_t delay=10000;
-            while(delay--);
+            // uint32_t delay=10000;
+            // while(delay--);
             CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_RESET_ALL, 0);
         }
         break;
@@ -311,9 +311,9 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         Master_estimate(particles,estimate_final);
 
         UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
-        currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
+        currentState = STATE_WAITING_FOR_PRIMARY_WAKEUP;
         //Add fusion Algo
-        APP_voidFSMHandler(EVENT_FINAL_DISTANCE);
+        APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
         break;
 
     default:
