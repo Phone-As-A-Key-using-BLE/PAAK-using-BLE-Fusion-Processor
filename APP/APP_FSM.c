@@ -311,9 +311,10 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         Master_estimate(particles,estimate_final);
 
         UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
-        currentState = STATE_WAITING_FOR_PRIMARY_WAKEUP;
+        currentState = STATE_PRIMARY_TDM;
         //Add fusion Algo
-        APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
+        // APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
         break;
 
     default:
