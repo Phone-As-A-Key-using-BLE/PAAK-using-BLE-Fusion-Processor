@@ -229,8 +229,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         }
         else if (Global_u8CurrentAnchor >= CAN_ANCHOR_MAX && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
         {
-            uint8_t i=0;
-            for (i = 0; i < CAN_ANCHOR_MAX ;i++)
+            uint8_t i;
+            for (i = CAN_PRIMARY_ANCHOR; i <= CAN_ANCHOR_MAX; i++)
                 Global_PEDone[i]=0;
             // Initialize PE process
             Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
