@@ -39,7 +39,7 @@ uint8_t anchorID = 0;
 char msg[256];
 
 extern APP_tenuStates currentState;
-
+extern uint8_t lock;
 
 volatile RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1]= {0};
 
@@ -211,7 +211,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             //CAN_voidSendRangingType(Global_u8DevicesRangingType);
             if(currentState == STATE_IDLE){
                 currentState = STATE_PRIMARY_TDM;
-                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
+                lock=1;
             }
             else
                 APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);

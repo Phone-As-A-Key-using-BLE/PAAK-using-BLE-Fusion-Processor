@@ -41,7 +41,7 @@ extern uint8_t isBondingDataReceived;
 RSSIData_t targetData;
 extern RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1];
 //Fusion
-Particle particles[NUM_PARTICLES];
+Particle particles[NUM_PARTICLES]={0};
 uint8_t volatile firstTimeFlag = 1;
 uint8_t Loc_u8CurrentDeviceId = 0;
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
@@ -181,8 +181,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             case EVENT_RECEIVE_DISTANCE:
                 Global_u8SuccessPE++;
                 Global_PEDone[Global_u8CurrentAnchor] = 1;
-                //RSSI_EEPROM_ReadRSSIData(Global_u8CurrentAnchor,&targetData);
-                //Global_f64Readings[Global_u8CurrentAnchor] = (double_t)(targetData.distance/100.0);
+                
                 Global_f64Readings[Global_u8CurrentAnchor] = (double_t)(gRSSIData[Global_u8CurrentAnchor].distance/100.0);
                     /* Log the parsed data */
                 snprintf(msg, sizeof(msg),
@@ -193,7 +192,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 UART_SendMessage(buffer);
 
                 Global_u8PERetryCount = 0;
-                
+                CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
                 // Move to the next available anchor
                 do {
                     Global_u8CurrentAnchor++;
@@ -215,6 +214,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                     snprintf(buffer, sizeof(buffer), "\n[ERROR] Passive Entry failed on anchor %d after maximum retries. Moving to next anchor...\n", Global_u8CurrentAnchor+1);
                     UART_SendMessage(buffer);
                     Global_u8PERetryCount = 0;
+                    CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
                     do {
                         Global_u8CurrentAnchor++;
                     } while (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor]);
@@ -254,6 +254,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             
             Global_u8FirstTime = 1;
             
+            CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor-1, Loc_u8CurrentDeviceId);
             
             UART_SendMessage("\n[INFO] Loop again through anchors...\n");
             currentState = STATE_SECONDARY_PE;
