@@ -9,7 +9,6 @@
 #include "can_msg_types.h"
 #include "CAN_MasterReceive.h"
 #include "CAN_App.h"
-#include "RssiManager.h"
 #include "sys/cdefs.h"
 
 #if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
@@ -37,12 +36,12 @@ uint8_t isTDM    = 0;
 uint8_t anchorID = 0;
 
 /* Debug print buffer */
-char msg[256];
+extern char gArr_DebugMsg[512];
 
 extern APP_tenuStates currentState;
 
 
-volatile RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1]= {0};
+volatile RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1] = {0};
 
 
 /* ---------------------------------------------------------------------------
@@ -246,8 +245,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         default:
         {
-            snprintf(msg, sizeof(msg), "Received unknown message ID: 0x%03X\r\n", (unsigned)messageId);
-            UART_SendMessage(msg);
+            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Received unknown message ID: 0x%03X\r\n", (unsigned)messageId);
+            UART_SendMessage(gArr_DebugMsg);
             break;
         }
     }
@@ -256,10 +255,10 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
     if (anchorID > 0)
     {
         parseDistanceData(pRxMsg, rxData);
-        snprintf(msg, sizeof(msg),
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
                  "Received Distance Data from Anchor %d, Type: %s\r\n",
                  anchorID, isTDM ? "TDM" : "PE");
-        UART_SendMessage (msg);
+        UART_SendMessage (gArr_DebugMsg);
         anchorID=0;
     }
 }
@@ -304,26 +303,26 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
 
 
     snprintf(
-    msg,
-    sizeof(msg),
+    gArr_DebugMsg,
+    sizeof(gArr_DebugMsg),
     "Anchor %d, Dist: %d.%d\r\n",
     anchorID,
     s_distanceData.distanceIntegerPart,
     s_distanceData.distanceDecimalPart
     );
-    UART_SendMessage (msg);
+    UART_SendMessage (gArr_DebugMsg);
 
     /* (Optional) If you also want to log the DQI:
     snprintf(
-    msg,
-    sizeof(msg),
+    gArr_DebugMsg,
+    sizeof(gArr_DebugMsg),
     "Anchor %d, Dist: %d.%d, DQI: %.2f%%\r\n",
     anchorID,
     s_distanceData.distanceIntegerPart,
     s_distanceData.distanceDecimalPart,
     (double)s_distanceData.dqiPercentage
     );
-    UART_SendMessage (ANSI_COLOR_GREEN, "%s", msg);
+    UART_SendMessage (ANSI_COLOR_GREEN, "%s", gArr_DebugMsg);
     */
 
 
@@ -387,56 +386,39 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
  * ---------------------------------------------------------------------------*/
 static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
 {
-    RSSIData_t* targetData = NULL;
 
     /* Determine the target structure based on the message ID */
     switch (messageId)
     {
         case CAN_ID_RSSI_A1:
-            //targetData = &gRSSIData[CAN_ANCHOR_1];
             gRSSIData[CAN_ANCHOR_1].averageRssi = rxData[0];
             gRSSIData[CAN_ANCHOR_1].confidence = rxData[1];
             gRSSIData[CAN_ANCHOR_1].accuracy = rxData[2];
             gRSSIData[CAN_ANCHOR_1].distance = ((uint16_t)rxData[3] << 8) | rxData[4];
             gRSSIData[CAN_ANCHOR_1].anchorId = 1;
-            RSSI_EEPROM_WriteRSSIData(CAN_ANCHOR_1,&gRSSIData[CAN_ANCHOR_1]);
-            //targetData->anchorId = 1;
             break;
         case CAN_ID_RSSI_A2:
-            //targetData = &gRSSIData[CAN_ANCHOR_2];
             gRSSIData[CAN_ANCHOR_2].averageRssi = rxData[0];
             gRSSIData[CAN_ANCHOR_2].confidence = rxData[1];
             gRSSIData[CAN_ANCHOR_2].accuracy = rxData[2];
             gRSSIData[CAN_ANCHOR_2].distance = ((uint16_t)rxData[3] << 8) | rxData[4];
             gRSSIData[CAN_ANCHOR_2].anchorId = 2;
-            RSSI_EEPROM_WriteRSSIData(CAN_ANCHOR_2,&gRSSIData[CAN_ANCHOR_2]);
-            //targetData->anchorId = 2;
             break;
         case CAN_ID_RSSI_A3:
-            //targetData = &gRSSIData[CAN_ANCHOR_3];
             gRSSIData[CAN_ANCHOR_3].averageRssi = rxData[0];
             gRSSIData[CAN_ANCHOR_3].confidence = rxData[1];
             gRSSIData[CAN_ANCHOR_3].accuracy = rxData[2];
             gRSSIData[CAN_ANCHOR_3].distance = ((uint16_t)rxData[3] << 8) | rxData[4];
             gRSSIData[CAN_ANCHOR_3].anchorId = 3;
-            RSSI_EEPROM_WriteRSSIData(CAN_ANCHOR_3,&gRSSIData[CAN_ANCHOR_3]);
-            //targetData->anchorId = 3;
             break;
         default:
             return; // Unknown message ID
     }
 
-    // /* Parse RSSI data */
-    // targetData->averageRssi = rxData[0];
-    // targetData->confidence = rxData[1];
-    // targetData->accuracy = rxData[2];
-    // targetData->distance = ((uint16_t)rxData[3] << 8) | rxData[4];
-
     /* Log the parsed data */
-snprintf(msg, sizeof(msg),
-                        "RSSI CAN Data - Distance: %d\r\n",
-                        gRSSIData[Global_u8CurrentAnchor].distance);
-                UART_SendMessage(msg);
+    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "RSSI CAN Data - Distance: %d\r\n", 
+                gRSSIData[Global_u8CurrentAnchor].distance);
+    UART_SendMessage(gArr_DebugMsg);
 
     /* Trigger an event if needed */
     APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);

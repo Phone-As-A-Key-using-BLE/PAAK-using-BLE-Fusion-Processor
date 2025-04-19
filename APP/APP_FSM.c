@@ -13,10 +13,7 @@
 #include "APP/CAN_MasterReceive.h"
 #include "DeviceRangingTypeManager.h"
 #include "APP/CAN_App.h"
-#include "APP/RssiManager.h"
-
 #include "APP/APP_FSM.h"
-
 //Fusion
 #include "APP/Fusion/Trilateration.h"
 #include "APP/Fusion/Particle.h"
@@ -26,9 +23,9 @@ void delay_ms(uint32_t ms) {
     SysCtlDelay((SysCtlClockGet() / 3) / 1000 * ms);
 }
 
-char buffer[1024]; // for debugging
 /* Debug print buffer */
-char msg[1024];
+char gArr_DebugMsg[512];
+
 APP_tenuStates currentState = STATE_IDLE;
 
 uint8_t Global_PEDone[CAN_ANCHOR_MAX+1]={0,0,0,0};
@@ -182,16 +179,14 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             case EVENT_RECEIVE_DISTANCE:
                 Global_u8SuccessPE++;
                 Global_PEDone[Global_u8CurrentAnchor] = 1;
-                //RSSI_EEPROM_ReadRSSIData(Global_u8CurrentAnchor,&targetData);
-                //Global_f64Readings[Global_u8CurrentAnchor] = (double_t)(targetData.distance/100.0);
                 Global_f64Readings[Global_u8CurrentAnchor] = (double_t)(gRSSIData[Global_u8CurrentAnchor].distance/100.0);
                     /* Log the parsed data */
-                snprintf(msg, sizeof(msg),
+                snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
                         "RSSI FSM Data - Distance: %d\r\n",
                         gRSSIData[Global_u8CurrentAnchor].distance);
-                UART_SendMessage(msg);
-                snprintf(buffer, sizeof(buffer), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor);
-                UART_SendMessage(buffer);
+                UART_SendMessage(gArr_DebugMsg);
+                snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor);
+                UART_SendMessage(gArr_DebugMsg);
 
                 Global_u8PERetryCount = 0;
                 
@@ -207,14 +202,14 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 if (Global_u8PERetryCount < MAX_PE_RETRIES)
                 {
                     Global_u8PERetryCount++;
-                    snprintf(buffer, sizeof(buffer), "\n[WARNING] Passive Entry failed on anchor %d. Retrying attempt %d/%d...\n",
+                    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[WARNING] Passive Entry failed on anchor %d. Retrying attempt %d/%d...\n",
                             Global_u8CurrentAnchor, Global_u8PERetryCount, MAX_PE_RETRIES);
-                    UART_SendMessage(buffer);
+                    UART_SendMessage(gArr_DebugMsg);
                 }
                 else
                 {
-                    snprintf(buffer, sizeof(buffer), "\n[ERROR] Passive Entry failed on anchor %d after maximum retries. Moving to next anchor...\n", Global_u8CurrentAnchor+1);
-                    UART_SendMessage(buffer);
+                    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[ERROR] Passive Entry failed on anchor %d after maximum retries. Moving to next anchor...\n", Global_u8CurrentAnchor+1);
+                    UART_SendMessage(gArr_DebugMsg);
                     Global_u8PERetryCount = 0;
                     do {
                         Global_u8CurrentAnchor++;
@@ -225,8 +220,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
         if (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX)
         {
-            snprintf(buffer, sizeof(buffer), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
-            UART_SendMessage(buffer);
+            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
+            UART_SendMessage(gArr_DebugMsg);
             //CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
             lock=1;
             break;
