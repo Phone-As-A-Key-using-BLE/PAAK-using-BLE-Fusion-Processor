@@ -208,22 +208,19 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         /* Wake-up notification messages ---------------------------------- */
         case CAN_ID_WAKEUP_NOTIFICATION_A1:
-            //CAN_voidSendRangingType(Global_u8DevicesRangingType);
             if(currentState == STATE_IDLE){
                 currentState = STATE_PRIMARY_TDM;
                 lock=1;
+                break;
             }
-            else
-                APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+            APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
-            //CAN_voidSendRangingType(Global_u8DevicesRangingType);
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
-            //CAN_voidSendRangingType(Global_u8DevicesRangingType);
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
