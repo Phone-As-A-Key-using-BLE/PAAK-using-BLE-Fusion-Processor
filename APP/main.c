@@ -20,9 +20,9 @@ extern uint8_t isBondingDataReceived;
 {
     OS_Init();
     isBondingDataReceived=1;
-    currentState = STATE_PRIMARY_TDM;
-    CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
-    // Main loop to keep checking for incoming messages
+    
+    CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_RESET_ALL, 0);
+
     while (1)
     {
         if(lock){

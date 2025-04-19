@@ -209,7 +209,12 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         /* Wake-up notification messages ---------------------------------- */
         case CAN_ID_WAKEUP_NOTIFICATION_A1:
             //CAN_voidSendRangingType(Global_u8DevicesRangingType);
-            APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+            if(currentState == STATE_IDLE){
+                currentState = STATE_PRIMARY_TDM;
+                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
+            }
+            else
+                APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
@@ -386,7 +391,6 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
  * ---------------------------------------------------------------------------*/
 static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
 {
-
     /* Determine the target structure based on the message ID */
     switch (messageId)
     {
