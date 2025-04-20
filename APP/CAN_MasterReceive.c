@@ -417,8 +417,10 @@ static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
     }
 
     /* Log the parsed data */
-    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "RSSI CAN Data - Distance: %d\r\n", 
+    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "[INFO] RSSI Data:\n- Distance: %d -\r\n", 
                 gRSSIData[Global_u8CurrentAnchor].distance);
+    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Anchor %d Distance (RADE): %d", 
+                gRSSIData[Global_u8CurrentAnchor].anchorId, gRSSIData[Global_u8CurrentAnchor].distance);
     UART_SendMessage(gArr_DebugMsg);
 
     /* Trigger an event if needed */

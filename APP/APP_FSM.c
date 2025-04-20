@@ -181,10 +181,6 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 Global_PEDone[Global_u8CurrentAnchor] = 1;
                 Global_f64Readings[Global_u8CurrentAnchor] = (double_t)(gRSSIData[Global_u8CurrentAnchor].distance/100.0);
                     /* Log the parsed data */
-                snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
-                        "RSSI FSM Data - Distance: %d\r\n",
-                        gRSSIData[Global_u8CurrentAnchor].distance);
-                UART_SendMessage(gArr_DebugMsg);
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor);
                 UART_SendMessage(gArr_DebugMsg);
 
@@ -298,6 +294,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         estimate_final[1] = 0;
         measureA = Master_trilaterate_position(testObj);
 
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", measureA.x,measureA.y);
+        UART_SendMessage(gArr_DebugMsg);
 
         //Particle filter
         if (firstTimeFlag){
@@ -309,6 +307,9 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         Master_update_particles(particles,measureA);
         Master_resample(particles);
         Master_estimate(particles,estimate_final);
+
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Particle Filter: (x = %.2f , y = %.2f)\n", estimate_final[0],estimate_final[1]);
+        UART_SendMessage(gArr_DebugMsg);
 
         UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
         currentState = STATE_PRIMARY_TDM;
