@@ -36,6 +36,6 @@ void Master_prediction(Particle particles[NUM_PARTICLES]);
 
 void Master_resample(Particle particles[NUM_PARTICLES]);
 
-void Master_estimate(Particle particles[NUM_PARTICLES],float32 coordinates[2]);
+void Master_estimate(Particle particles[NUM_PARTICLES],double_t coordinates[2]);
 
 #endif

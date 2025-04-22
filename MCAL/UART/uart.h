@@ -48,5 +48,5 @@ void ftoa(float number, char *buffer, int decimalPlaces);
 void UART_SendMessageConnectivity(const char *array, uint16_t stop);
 void UART_SendNumberConnectivity(uint8_t number);
 void UART_SendHexConnectivity(uint8_t *dataArray, uint8_t stopIndex);
-
+int my_sprintf(char** buffer, const char* format, ...);
 #endif /* UART_H */

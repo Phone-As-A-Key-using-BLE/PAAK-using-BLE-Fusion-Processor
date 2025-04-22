@@ -63,11 +63,11 @@ Measurement_Type Master_trilaterate_position(object_list arr_object_list[NUM_OF_
 
     float64 A[NUM_OF_ANCHORS*2], B[NUM_OF_ANCHORS], AT[2*NUM_OF_ANCHORS], ATA[4], ATB[2], ATA_inv[4];
 
-    // Anchor coordinates
+    // Anchor coordinates 140cm x 80cm
     Measurement anchorCoordinates[NUM_OF_ANCHORS] = {
-        {2,1},    // Master Node coordinates
-        {2,-1},   // Second anchor coordinates
-        {-2,-0}        // Third anchor coordinates (Msh mawgood ):)
+        {-0.7,0},    // Anchor1
+        {0.7,0.4},   // Anchor2
+        {0.7,-0.4}   // Anchor3
     };
 //(x-x1)^2+(y-y1^2)=r^2
     // Construct matrices A and B

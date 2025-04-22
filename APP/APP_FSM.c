@@ -25,7 +25,6 @@ void delay_ms(uint32_t ms) {
 
 /* Debug print buffer */
 char gArr_DebugMsg[512];
-
 APP_tenuStates currentState = STATE_IDLE;
 
 uint8_t Global_PEDone[CAN_ANCHOR_MAX+1] = {0};
@@ -53,10 +52,15 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
     case STATE_IDLE:
         if (Copy_structEvent == EVENT_OWNER_PAIRING_BUTTON_PRESSED)
         {
+            Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
+            Global_u8SuccessPE = 0;
+            Global_u8FirstTime = 1;
+            Global_u8PERetryCount = 0;
             // Transition to owner pairing process
             currentState = STATE_START_OWNER_PAIRING;
             UART_SendMessage("\n[INFO] Owner pairing button pressed. Initiating owner pairing process...\n");
             APP_voidFSMHandler(EVENT_SEND_OWNER_PAIRING_COMMAND);
+
         }
         break;
 
@@ -82,6 +86,12 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             // while(delay--);
             CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_RESET_ALL, 0);
         }
+        else if (Copy_structEvent == EVENT_PRIMARY_PE_FAILED)
+        {
+            currentState = STATE_PRIMARY_PE;
+            UART_SendMessage("\n[ERROR] Trigger owner pairing failed. Trigger OP again...\n");
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_OWNER_PAIRING, CAN_PRIMARY_ANCHOR, 0);
+        }
         break;
     // **WAITING FOR PRIMARY WAKEUP**: System waits for a wake-up event
     case STATE_WAITING_FOR_PRIMARY_WAKEUP:
@@ -90,7 +100,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             currentState = STATE_PRIMARY_PE;
             UART_SendMessage("\n[INFO] Wake-up signal received. Triggering Passive Entry (PE) on primary anchor...\n");
             DeviceStateManager_Update(Loc_u8CurrentDeviceId, APP_CS);
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
+            //CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
+            lock=1;
 
         }
         break;
@@ -285,17 +296,19 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         /******* Add functions for distance 3 calculations  *******/
         //Global_f64Readings[2] = ???
         // For testObj array:
-        testObj[0] = (object_list){Global_f64Readings[1], 1};
-        testObj[1] = (object_list){Global_f64Readings[2], 2};
-        testObj[2] = (object_list){Global_f64Readings[3], 3};
-
+    //   testObj[0] = (object_list){Global_f64Readings[1], 1};
+     //  testObj[1] = (object_list){Global_f64Readings[2], 2};
+     //  testObj[2] = (object_list){Global_f64Readings[3], 3};
+    testObj[0] = (object_list){0.4,1};
+    testObj[1] = (object_list){1.61,2};
+    testObj[2] = (object_list){1.4,3};
         // For estimate_final array:
         estimate_final[0] = 0;
         estimate_final[1] = 0;
         measureA = Master_trilaterate_position(testObj);
 
-        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", measureA.x,measureA.y);
-        UART_SendMessage(gArr_DebugMsg);
+        // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", measureA.x,measureA.y);
+        // UART_SendMessage(gArr_DebugMsg);
 
         //Particle filter
         if (firstTimeFlag){
@@ -308,9 +321,10 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         Master_resample(particles);
         Master_estimate(particles,estimate_final);
 
-        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Particle Filter: (x = %.2f , y = %.2f)\n", estimate_final[0],estimate_final[1]);
-        UART_SendMessage(gArr_DebugMsg);
-
+        //sprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Particle Filter: (x = %.2f , y = %.2f)\n", estimate_final[0],estimate_final[1]);
+        //UART_SendMessage(gArr_DebugMsg);
+        // my_sprintf(&buffer, "\n[INFO] Location from Particle Filter: (x = %.2f , y = %.2f)\n", estimate_final[0],estimate_final[1]);
+        // UART_SendMessage(buffer);
         UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
         currentState = STATE_PRIMARY_TDM;
         //Add fusion Algo
