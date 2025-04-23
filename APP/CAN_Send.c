@@ -29,16 +29,7 @@
 #include "can_msg_types.h"
 #include "CAN_Send.h"
 
-// Flag to determine the distance being sent is from passive entry or from trigger distance measurement command
-#if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
-uint8_t Global_u8PEorTDM;
-#endif
-
-
-
-char loc_cPrintBuffer[2048];     // Buffer for formatted print output
-extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
-
+extern char gArr_DebugMsg[512];     // Buffer for formatted print output
 const char* CAN_CommandStrings[] = {
     "CAN_COMMAND_TRIGGER_OWNER_PAIRING",
     "CAN_COMMAND_TRIGGER_PASSIVE_ENTRY",
@@ -48,12 +39,6 @@ const char* CAN_CommandStrings[] = {
     "CAN_COMMAND_INVALID",
     "CAN_COMMMAND_DISCONNECT_FROM_DEVICE"
 };
-
-#if (CAN_ENABLE_HANDOVER)
-// Global variable to track handover message sending count
-uint8_t Global_u8SendHandover;
-#endif
-
 
 /* CAN_voidSendBondingData
  * @brief Sends bonding data over CAN bus, including device information and security keys.
@@ -96,232 +81,35 @@ void CAN_voidSendBondingData(uint8_t Copy_u8NvmId, bool gAppOutAuth, bool gAppOu
         }
         CAN_voidSendMsg(CAN_ID_BONDING_DATA, loc_u8CanData);
     }
-
-    // Print formatted bonding data transmission details after all data is sent
-#if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n============================\n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "CAN Bonding Data Transmission        \n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n");
-
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "[INFO] Bonding Data Sent:\n  - NVM_ID        : %d\n  - Authenticated : %s\n  - LE Secure Conn: %s\n  - Address       : ", 
-             Copy_u8NvmId, gAppOutAuth ? "Yes" : "No", gAppOutLeSc ? "Yes" : "No");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
-
-    for (i = 0; i < gcBleDeviceAddressSize_c; i++){
-        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "%02X ", Add_structKeys.aAddress[i]);
-        SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
-    }
-
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n  - LTK           : ");
-    for (i = 0; i < gcSmpMaxLtkSize_c; i++){
-        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "%02X ", Add_structKeys.aLtk[i]);
-        SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
-    }
-
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n  - IRK           : ");
-    for (i = 0; i < gcSmpIrkSize_c; i++){
-        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "%02X ", Add_structKeys.aIrk[i]);
-        SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
-    }
-
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n============================\n\n");
-
-#else
+ 
     UART_SendMessage("\n============================\n");
     UART_SendMessage("CAN Bonding Data Transmission        \n");
     UART_SendMessage("============================\n");
 
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "[INFO] Bonding Data Sent:\n  - NVM_ID        : %d\n  - Authenticated : %s\n  - LE Secure Conn: %s\n  - Address       : ", 
+    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "[INFO] Bonding Data Sent:\n  - NVM_ID        : %d\n  - Authenticated : %s\n  - LE Secure Conn: %s\n  - Address       : ", 
              Copy_u8NvmId, gAppOutAuth ? "Yes" : "No", gAppOutLeSc ? "Yes" : "No");
-    UART_SendMessage(loc_cPrintBuffer);
+    UART_SendMessage(gArr_DebugMsg);
 
     for (i = 0; i < gcBleDeviceAddressSize_c; i++){
-        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "%02X ", Add_structKeys.aAddress[i]);
-        UART_SendMessage(loc_cPrintBuffer);
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "%02X ", Add_structKeys.aAddress[i]);
+        UART_SendMessage(gArr_DebugMsg);
     }
 
     UART_SendMessage("\n  - LTK           : ");
     for (i = 0; i < gcSmpMaxLtkSize_c; i++){
-        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "%02X ", Add_structKeys.aLtk[i]);
-        UART_SendMessage(loc_cPrintBuffer);
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "%02X ", Add_structKeys.aLtk[i]);
+        UART_SendMessage(gArr_DebugMsg);
     }
 
     UART_SendMessage("\n  - IRK           : ");
     for (i = 0; i < gcSmpIrkSize_c; i++){
-        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "%02X ", Add_structKeys.aIrk[i]);
-        UART_SendMessage(loc_cPrintBuffer);
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "%02X ", Add_structKeys.aIrk[i]);
+        UART_SendMessage(gArr_DebugMsg);
     }
 
     UART_SendMessage("\n============================\n\n");
-#endif
+
 }
-
-#if (CAN_ENABLE_HANDOVER)
-/* CAN_voidHandover
- * @brief Sends a handover message with the next anchor point for the device.
- *
- * @param Copy_u8DeviceId ID of the device undergoing handover.
- */
-void CAN_voidHandover(uint8_t Copy_u8DeviceId){
-  uint8_t loc_u8CanData[8] = {0};
-  loc_u8CanData[0] = Copy_u8DeviceId; // Store device ID
-  loc_u8CanData[1] = CAN_GET_NEXT_ANCHOR(CAN_ANCHOR_ID); // Fetch next anchor ID
-
-#if (CAN_ANCHOR_ID != CAN_MASTER_NODE) && defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
-  // Print title in shell
-  shell_write("\n================= \nCAN send Handover \n=================\n");
-#else
-  UART_SendMessage("\n================= \nCAN send Handover \n=================\n");
-#endif
-
-  // Send handover message
-  CAN_voidSendMsg(CAN_ID_HANDOVER, loc_u8CanData);
-}
-#endif
-
-#if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
-
-/* CAN_voidSendDistance
- * @brief Sends distance measurement data over CAN bus.
- *
- * @param Copy_u8DeviceId Device ID.
- * @param Copy_u16ProcNo Process number.
- * @param Copy_structResults Struct containing localization algorithm results.
- * @param Copy_u8PEorTDM flag to determine either the distance is from Passive Entry or Trigger Distance Measurement command
- */
-void CAN_voidSendDistance(uint8_t Copy_u8DeviceId, uint16_t Copy_u16ProcNo, localizationAlgoRun_t Copy_structResults, uint8_t Copy_u8PEorTDM){
-    uint8_t loc_u8CanData[8] = {0}; // Local array for CAN message data
-
-    loc_u8CanData[0] = Copy_u8DeviceId;
-    loc_u8CanData[1] = Copy_u16ProcNo & 0xff;
-    loc_u8CanData[2] = (Copy_u16ProcNo >> 8) & 0xff;
-    loc_u8CanData[3] = Copy_structResults.distanceIntegerPart;
-    loc_u8CanData[4] = (Copy_structResults.distanceDecimalPart) & 0xff;
-    loc_u8CanData[5] = (Copy_structResults.distanceDecimalPart >> 8) & 0xff;
-    loc_u8CanData[6] = (uint8_t)(Copy_structResults.dqiPercentage * 100) & 0xff;
-    loc_u8CanData[7] = ((uint8_t)(Copy_structResults.dqiPercentage * 100) >> 8) & 0xff;
-
-    if(Copy_u8PEorTDM == PE)
-        CAN_voidSendMsg(CAN_ID_DISTANCE_PE, loc_u8CanData);
-    else
-        CAN_voidSendMsg(CAN_ID_DISTANCE_TDM, loc_u8CanData);
-
-#if (CAN_ENABLE_HANDOVER)
-    // Track the number of handover messages sent
-    Global_u8SendHandover++;
-    if (Global_u8SendHandover == gCsProcRepeatMaxNumProcedures_c){
-        CAN_voidHandover(Copy_u8DeviceId);
-        Global_u8SendHandover = 0;
-    }
-#endif
-
-    // Print formatted distance transmission details after all data is sent
-#if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n============================\n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "CAN Distance Transmission            \n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n");
-
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), 
-             "[INFO] Distance Data Sent:\n  - Device ID   : %d\n  - Process No  : %d\n  - Distance    : %d.%02d meters\n  - DQI         : %d%%\n  - Trigger Type: %s\n", 
-             Copy_u8DeviceId, Copy_u16ProcNo, Copy_structResults.distanceIntegerPart, 
-             Copy_structResults.distanceDecimalPart, (uint8_t)(Copy_structResults.dqiPercentage * 100),
-             (Copy_u8PEorTDM == PE) ? "Passive Entry" : "Trigger Distance Measurement");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n\n");
-
-#else
-    UART_SendMessage("\n============================\n");
-    UART_SendMessage("CAN Distance Transmission            \n");
-    UART_SendMessage("============================\n");
-
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), 
-             "[INFO] Distance Data Sent:\n  - Device ID   : %d\n  - Process No  : %d\n  - Distance    : %d.%02d meters\n  - DQI         : %d%%\n  - Trigger Type: %s\n", 
-             Copy_u8DeviceId, Copy_u16ProcNo, Copy_structResults.distanceIntegerPart, 
-             Copy_structResults.distanceDecimalPart, (uint8_t)(Copy_structResults.dqiPercentage * 100),
-             (Copy_u8PEorTDM == PE) ? "Passive Entry" : "Trigger Distance Measurement");
-    UART_SendMessage(loc_cPrintBuffer);
-    UART_SendMessage("============================\n\n");
-#endif
-}
-
-
-/** CAN_voidSendPeResponse
- * @brief Sends passive entry response over CAN bus.
- *
- * @param Copy_enuResponse Respone either success or fail.
- * @param Copy_u8ReceiverId Receiver Identifier.
- * @param Copy_u8DeviceId Device ID.
- */
-void CAN_voidSendPeResponse(CAN_tenumPeResponse Copy_enuResponse, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8DeviceId) {
-    uint8_t loc_u8CanData[8] = {0}; // Local array for CAN message data
-
-    loc_u8CanData[0] = Copy_enuResponse;  // Store response
-    loc_u8CanData[1] = Copy_u8ReceiverId; // Store receiver ID
-    loc_u8CanData[2] = Copy_u8DeviceId;   // Store device ID
-
-    // Send PE response message
-    CAN_voidSendMsg(CAN_ID_PE_STATUS, loc_u8CanData);
-
-    // Print formatted PE response details after all data is sent
-#if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n============================\n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "CAN PE Response Transmission         \n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n");
-
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer),
-             "[INFO] PE Response Sent:\n  - Response Type : %d\n  - Receiver ID   : %d\n  - Device ID     : %d\n",
-             Copy_enuResponse, Copy_u8ReceiverId, Copy_u8DeviceId);
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n\n");
-
-#else
-    UART_SendMessage("\n============================\n");
-    UART_SendMessage("CAN PE Response Transmission         \n");
-    UART_SendMessage("============================\n");
-
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer),
-             "[INFO] PE Response Sent:\n  - Response Type : %d\n  - Receiver ID   : %d\n  - Device ID     : %d\n",
-             Copy_enuResponse, Copy_u8ReceiverId, Copy_u8DeviceId);
-    UART_SendMessage(loc_cPrintBuffer);
-    UART_SendMessage("============================\n\n");
-#endif
-}
-
-
-/** CAN_voidNotifyWakeup
- * @brief Sends wakeup notification over CAN bus.
- *
- */
-void CAN_voidNotifyWakeup() {
-    uint8_t loc_u8CanData[8] = {0}; // Local array for CAN message data
-    
-    loc_u8CanData[0] = 1; // Indicate wakeup notification
-
-    // Send wakeup notification message
-    CAN_voidSendMsg(CAN_ID_WAKEUP_NOTIFICATION, loc_u8CanData);
-
-    // Print formatted wakeup notification details after data is sent
-#if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n============================\n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "CAN Wakeup Notification             \n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n");
-
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "[INFO] Wakeup Notification Sent Successfully\n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n\n");
-
-#else
-    UART_SendMessage("\n============================\n");
-    UART_SendMessage("CAN Wakeup Notification             \n");
-    UART_SendMessage("============================\n");
-
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "[INFO] Wakeup Notification Sent Successfully\n");
-    UART_SendMessage(loc_cPrintBuffer);
-    UART_SendMessage("============================\n\n");
-#endif
-}
-
-#else
 
 /** CAN_voidSendCommand
  * @brief Sends commands over CAN bus, including receiver identifier.
@@ -344,42 +132,52 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
 
     }
 
-    // Print formatted command transmission details after data is sent
-#if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n============================\n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "CAN Command Transmission           \n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n");
-
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer),
-             "[INFO] Command Sent:\n  - Command ID  : %d\n  - Receiver ID : %d\n  - Data        : %d\n",
-             Copy_enuCommand, Copy_u8ReceiverId, Copy_u8Data);
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n\n");
-
-#else
     UART_SendMessage("\n============================\n");
     UART_SendMessage("CAN Command Transmission           \n");
     UART_SendMessage("============================\n");
 
     if(Copy_enuCommand == CAN_COMMAND_TRIGGER_PASSIVE_ENTRY || Copy_enuCommand == CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT)
     {
-        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer),
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
              "[INFO] Command Sent :\n  - Command ID : %s\n  - Receiver ID : %d\n  - Device ID : %d\n - Ranging Type : %d\n",
              CAN_CommandStrings[Copy_enuCommand], Copy_u8ReceiverId, Copy_u8Data,loc_u8CanData[3]);
 
     }
     else{
-        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer),
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
              "[INFO] Command Sent :\n  - Command ID : %s\n  - Receiver ID : %d\n  - Device ID : %d\n",
              CAN_CommandStrings[Copy_enuCommand], Copy_u8ReceiverId, Copy_u8Data);
     }
-    UART_SendMessage(loc_cPrintBuffer);
+    UART_SendMessage(gArr_DebugMsg);
     UART_SendMessage("\n============================\n\n");
-#endif
 
     // Send command message before printing the output
     CAN_voidSendMsg(CAN_ID_COMMANDS, loc_u8CanData);
 }
+
+void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8HandoverTo,uint8_t Copy_u8deviceId){
+    uint8_t loc_u8CanData[8] = {0}; // Local array for CAN message data
+
+    loc_u8CanData[0] = CAN_COMMAND_HANDOVER;
+    loc_u8CanData[1] = Copy_u8ReceiverId;
+    loc_u8CanData[2] = Copy_u8HandoverTo;
+    loc_u8CanData[3] = Copy_u8deviceId ;
+
+    UART_SendMessage("\n============================\n");
+    UART_SendMessage("CAN Handover Command Transmission\n");
+    UART_SendMessage("============================\n");
+
+    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
+            "[INFO] Command Sent :\n  - Command ID : %s\n  - Receiver ID : %d\n  - Handover To : %d\n - Device Id: %d\n", 
+            CAN_CommandStrings[loc_u8CanData[0]], Copy_u8ReceiverId, Copy_u8HandoverTo,Copy_u8deviceId);
+
+    UART_SendMessage(gArr_DebugMsg);
+    UART_SendMessage("\n============================\n\n");
+
+    // Send command message before printing the output
+    CAN_voidSendMsg(CAN_ID_COMMANDS, loc_u8CanData);
+}
+
 /**
  * @brief Sends ranging type of device over CAN bus.
  * 
@@ -396,30 +194,17 @@ void CAN_voidSendRangingType(APP_tenuRangingType* Copy_enuRangingType){
     // Send wakeup notification message
     CAN_voidSendMsg(CAN_ID_RANGING_TYPE, loc_u8CanData);
 
-    // Print formatted wakeup notification details after data is sent
-#if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
-    char* Loc_u8RangingTypeNameForDebug [] ={"Not Determined","RSSI","CS"};
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "\n============================\n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "CAN Ranging Type             \n");
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n");
-
-    snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "[INFO] Sending ranging type for device %d which is %s\n",Copy_u8DeviceId,Loc_u8RangingTypeNameForDebug[Copy_enuRangingType]);
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, loc_cPrintBuffer);
-    SHELL_PrintfSynchronization((shell_handle_t)g_shellHandle, "============================\n\n");
-
-#else
     char* Loc_u8RangingTypeNameForDebug [] ={"Not Determined","RSSI","CS"};
     UART_SendMessage("\n============================\n");
     UART_SendMessage("CAN Ranging Type              \n");
     UART_SendMessage("============================\n");
     for (i=0;i<1;i++) {
-        snprintf(loc_cPrintBuffer, sizeof(loc_cPrintBuffer), "[INFO] Sending ranging type for device %d which is %s\n" ,i,Loc_u8RangingTypeNameForDebug[Copy_enuRangingType[i]]);
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "[INFO] Sending ranging type for device %d which is %s\n" ,i,Loc_u8RangingTypeNameForDebug[Copy_enuRangingType[i]]);
     }
-    UART_SendMessage(loc_cPrintBuffer);
+    UART_SendMessage(gArr_DebugMsg);
     UART_SendMessage("============================\n\n");
-#endif
 }
 
 
-#endif
+
 
