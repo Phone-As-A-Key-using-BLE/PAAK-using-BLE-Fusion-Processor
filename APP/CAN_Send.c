@@ -160,9 +160,8 @@ void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Hando
 
     loc_u8CanData[0] = CAN_COMMAND_HANDOVER;
     loc_u8CanData[1] = Copy_u8ReceiverId;
-    loc_u8CanData[2] = Copy_u8HandoverTo;
-    loc_u8CanData[3] = Copy_u8deviceId ;
-
+    loc_u8CanData[2] = Copy_u8deviceId ;
+    loc_u8CanData[3] = Copy_u8HandoverTo;
     UART_SendMessage("\n============================\n");
     UART_SendMessage("CAN Handover Command Transmission\n");
     UART_SendMessage("============================\n");
