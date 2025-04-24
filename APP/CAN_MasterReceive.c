@@ -170,39 +170,71 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             break;
 
         /* PE Status messages --------------------------------------------- */
-        case CAN_ID_PE_STATUS_A1:
+        case CAN_ID_STATUS_A1:
             if (rxData[0] == CAN_PE_SUCCESS)
             {
                 APP_voidFSMHandler(EVENT_PRIMARY_PE_SUCCESSFUL);
             }
-            else
+            else if(rxData[0] == CAN_PE_FAILED)
             {
-                if(Global_u8CurrentAnchor == rxData[2] && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
+                if(Global_u8CurrentAnchor == CAN_ANCHOR_1 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
                     APP_voidFSMHandler(EVENT_PRIMARY_PE_FAILED);
             }
+            else if(rxData[0] == CAN_HANDOVER_SUCCESS)
+            {
+                if(currentState==STATE_SECONDARY_PE)
+                    APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+            }
+            else if(rxData[0] == CAN_HANDOVER_FAILED)
+            {
+                if(currentState==STATE_SECONDARY_PE )
+                    APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+            }
             break;
 
-        case CAN_ID_PE_STATUS_A2:
+        case CAN_ID_STATUS_A2:
             if (rxData[0] == CAN_PE_SUCCESS)
             {
                 APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
             }
-            else
+            else if(rxData[0] == CAN_PE_FAILED)
             {
-                if(Global_u8CurrentAnchor == rxData[2] && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
+                if(Global_u8CurrentAnchor == CAN_ANCHOR_2 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
                     APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+
+            }
+            else if(rxData[0] == CAN_HANDOVER_SUCCESS)
+            {
+                if(currentState==STATE_SECONDARY_PE)
+                    APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+            }
+            else if(rxData[0] == CAN_HANDOVER_FAILED)
+            {
+                if(currentState==STATE_SECONDARY_PE )
+                    APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
             }
             break;
 
-        case CAN_ID_PE_STATUS_A3:
+        case CAN_ID_STATUS_A3:
             if (rxData[0] == CAN_PE_SUCCESS)
             {
                 APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
             }
-            else
+            else if(rxData[0] == CAN_PE_FAILED)
             {
-                if(Global_u8CurrentAnchor == rxData[2] && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
+                if(Global_u8CurrentAnchor == CAN_ANCHOR_3 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
                     APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+
+            }
+            else if(rxData[0] == CAN_HANDOVER_SUCCESS)
+            {
+                if(currentState==STATE_SECONDARY_PE)
+                    APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+            }
+            else if(rxData[0] == CAN_HANDOVER_FAILED)
+            {
+                if(currentState==STATE_SECONDARY_PE )
+                    APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
             }
             break;
 

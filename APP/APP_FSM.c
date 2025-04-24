@@ -34,6 +34,7 @@ uint8_t Global_u8SuccessPE = 0; // Success Passive Entry
 uint8_t Global_u8FirstTime = 1; 
 uint8_t Global_u8PERetryCount = 0;
 uint8_t lock = 0;
+uint8_t lock1= 0;
 extern uint8_t isBondingDataReceived;
 RSSIData_t targetData;
 extern RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1];
@@ -108,7 +109,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
     // **PRIMARY PASSIVE ENTRY (PE)**: Handle success or failure of PE
     case STATE_PRIMARY_PE:
-        if (Copy_structEvent == EVENT_PRIMARY_PE_SUCCESSFUL)
+        if (Copy_structEvent == EVENT_RECEIVE_DISTANCE)
         {
             currentState = STATE_PRIMARY_TDM;
             UART_SendMessage("\n[SUCCESS] Primary Passive Entry successful. Proceeding to Trigger Distance Measurement (TDM)...\n");
@@ -183,6 +184,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             Global_u8SuccessPE = 0;
             Global_u8FirstTime = 0;
             Global_u8PERetryCount = 0;
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Loc_u8CurrentDeviceId);
+            break;
         }
 
         switch (Copy_structEvent)
@@ -196,7 +199,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 UART_SendMessage(gArr_DebugMsg);
 
                 Global_u8PERetryCount = 0;
-                CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
+                //CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
                 // Move to the next available anchor
                 do {
                     Global_u8CurrentAnchor++;
@@ -224,46 +227,58 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                     } while (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor]);
                 }
                 break;
+
+            case EVENT_HANDOVER_SUCCESS:
+                snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending trigger distance measurement command to anchor %d...\n", Global_u8CurrentAnchor);
+                UART_SendMessage(gArr_DebugMsg);
+                lock1 = 1;
+            break;
+            case EVENT_HANDOVER_FAILED:
+                snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Handover failed try again...\n");
+                UART_SendMessage(gArr_DebugMsg);
+            break;
         }
 
-        if (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX)
-        {
-            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending Passive Entry command to anchor %d...\n", Global_u8CurrentAnchor);
-            UART_SendMessage(gArr_DebugMsg);
-            //CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
-            lock=1;
-            break;
-        }
-        else if (Global_u8CurrentAnchor >= CAN_ANCHOR_MAX && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
-        {
-            uint8_t i;
-            for (i = CAN_PRIMARY_ANCHOR; i <= CAN_ANCHOR_MAX; i++)
-                Global_PEDone[i]=0;
-            // Initialize PE process
-            Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
-            Global_u8SuccessPE = 0;
-            Global_u8FirstTime = 1;
-            Global_u8PERetryCount = 0;
-            
-            UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
-            currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
-            break;
-        }
-        else if (Global_u8CurrentAnchor > CAN_ANCHOR_MAX && Global_u8SuccessPE < APP_MINUMUM_DISTANCE_READINGS)
-        {
-            uint8_t i=0;
-            for (i = 0; i < CAN_ANCHOR_MAX ;i++)
-                Global_PEDone[i]=0;
-            
-            Global_u8FirstTime = 1;
-            
-            CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor-1, Loc_u8CurrentDeviceId);
-            
-            UART_SendMessage("\n[INFO] Loop again through anchors...\n");
-            currentState = STATE_SECONDARY_PE;
-            APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
-            break;
+        if(Copy_structEvent == EVENT_RECEIVE_DISTANCE || Copy_structEvent == EVENT_SECONDARY_PE_FAILED || Copy_structEvent == EVENT_HANDOVER_FAILED){
+            if (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX)
+            {
+                snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending handover command from anchor %d to anchor %d...\n", Global_u8CurrentAnchor-1 , Global_u8CurrentAnchor);
+                UART_SendMessage(gArr_DebugMsg);
+                //CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
+                CAN_voidSendHandoverCommand(Global_u8CurrentAnchor - 1, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
+                break;
+            }
+            else if (Global_u8CurrentAnchor >= CAN_ANCHOR_MAX && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
+            {
+                uint8_t i;
+                for (i = CAN_PRIMARY_ANCHOR; i <= CAN_ANCHOR_MAX; i++)
+                    Global_PEDone[i]=0;
+                // Initialize PE process
+                Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
+                Global_u8SuccessPE = 0;
+                Global_u8FirstTime = 1;
+                Global_u8PERetryCount = 0;
+                
+                UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
+                currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                break;
+            }
+            else if (Global_u8CurrentAnchor > CAN_ANCHOR_MAX && Global_u8SuccessPE < APP_MINUMUM_DISTANCE_READINGS)
+            {
+                uint8_t i=0;
+                for (i = 0; i < CAN_ANCHOR_MAX ;i++)
+                    Global_PEDone[i]=0;
+                
+                Global_u8FirstTime = 1;
+                
+                CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor-1, Loc_u8CurrentDeviceId);
+                
+                UART_SendMessage("\n[INFO] Loop again through anchors...\n");
+                currentState = STATE_SECONDARY_PE;
+                APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
+                break;
+            }
         }
         break;
 

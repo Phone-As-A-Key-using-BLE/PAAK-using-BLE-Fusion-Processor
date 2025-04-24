@@ -12,6 +12,7 @@
 #include "APP/CAN_Send.h"
 #include "APP/APP_FSM.h"
 extern uint8_t lock;
+extern uint8_t lock1;
 extern uint8_t Loc_u8CurrentDeviceId;
 extern uint8_t Global_u8CurrentAnchor;
 extern APP_tenuStates currentState;
@@ -28,6 +29,10 @@ extern uint8_t isBondingDataReceived;
         if(lock){
             lock=0;
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
+        }
+        if(lock1){
+            lock1=0;
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);        
         }
         __asm("WFE");
     }

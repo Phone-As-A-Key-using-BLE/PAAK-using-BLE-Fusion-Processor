@@ -8,6 +8,7 @@
 #ifndef APP_APP_FSM_H_
 #define APP_APP_FSM_H_
 
+#include "APP_FSM.h"
 #define MAX_PE_RETRIES 3  // User-defined max retries for PE
 
 typedef enum {
@@ -37,7 +38,9 @@ typedef enum {
     EVENT_DISTANCE_ABOVE_THRESHOLD,
     EVENT_FINAL_DISTANCE,
     EVENT_PRIMARY_WAKEUP_RECEIVED,
-    EVENT_SECONDARY_WAKEUP_RECEIVED
+    EVENT_SECONDARY_WAKEUP_RECEIVED,
+    EVENT_HANDOVER_SUCCESS,
+    EVENT_HANDOVER_FAILED
 } APP_tenuEvents;
 
 

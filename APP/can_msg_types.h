@@ -79,8 +79,10 @@ typedef enum
 typedef enum
 {
     CAN_PE_SUCCESS,
-    CAN_PE_FAILED
-} CAN_tenumPeResponse;
+    CAN_PE_FAILED,
+    CAN_HANDOVER_SUCCESS,
+    CAN_HANDOVER_FAILED
+} CAN_tenumStatus;
 
 typedef enum{
     PE,
