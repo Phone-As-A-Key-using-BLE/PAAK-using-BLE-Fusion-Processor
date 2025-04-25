@@ -11,9 +11,10 @@
 #include "APP/can_msg_types.h"
 #include "APP/CAN_Send.h"
 #include "APP/APP_FSM.h"
-extern uint8_t lock;
-extern uint8_t lock1;
-extern uint8_t Loc_u8CurrentDeviceId;
+extern uint8_t Global_u8SendPE;
+extern uint8_t Global_u8SendTDM;
+extern uint8_t Global_u8SendHandover;
+extern uint8_t Global_u8CurrentDeviceId;
 extern uint8_t Global_u8CurrentAnchor;
 extern APP_tenuStates currentState;
 extern uint8_t isBondingDataReceived;
@@ -26,13 +27,20 @@ extern uint8_t isBondingDataReceived;
 
     while (1)
     {
-        if(lock){
-            lock=0;
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);
+        if(Global_u8SendPE){
+            Global_u8SendPE = 0;
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
         }
-        if(lock1){
-            lock1=0;
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, Global_u8CurrentAnchor, Loc_u8CurrentDeviceId);        
+        if(Global_u8SendTDM){
+            Global_u8SendTDM = 0;
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);        
+        }
+        if(Global_u8SendHandover){
+            Global_u8SendHandover = 0;
+            if(Global_u8CurrentAnchor > CAN_ANCHOR_MAX)
+                CAN_voidSendHandoverCommand(CAN_ANCHOR_MAX, CAN_ANCHOR_1, Global_u8CurrentDeviceId);
+            else
+                CAN_voidSendHandoverCommand(Global_u8CurrentAnchor - 1, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
         }
         __asm("WFE");
     }

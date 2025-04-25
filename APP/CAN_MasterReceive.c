@@ -35,13 +35,23 @@ uint8_t gNextAnchorId = 0;
 uint8_t isTDM    = 0;
 uint8_t anchorID = 0;
 
+extern uint8_t Global_u8SendPE;
+extern uint8_t Global_u8SendTDM;
+extern uint8_t Global_u8SendHandover;
+extern uint8_t Global_u8CurrentDeviceId;
+
 /* Debug print buffer */
 extern char gArr_DebugMsg[512];
 
 extern APP_tenuStates currentState;
-extern uint8_t lock;
 
 volatile RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1] = {0};
+const char* CAN_statusStr[] = {
+    "CAN_PE_SUCCESS",
+    "CAN_PE_FAILED",
+    "CAN_HANDOVER_SUCCESS",
+    "CAN_HANDOVER_FAILED"
+};
 
 
 /* ---------------------------------------------------------------------------
@@ -171,70 +181,89 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         /* PE Status messages --------------------------------------------- */
         case CAN_ID_STATUS_A1:
+            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Received Status: %s\r\n", CAN_statusStr[rxData[0]]);
+            UART_SendMessage(gArr_DebugMsg);
             if (rxData[0] == CAN_PE_SUCCESS)
             {
                 APP_voidFSMHandler(EVENT_PRIMARY_PE_SUCCESSFUL);
+                break;
             }
             else if(rxData[0] == CAN_PE_FAILED)
             {
                 if(Global_u8CurrentAnchor == CAN_ANCHOR_1 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
                     APP_voidFSMHandler(EVENT_PRIMARY_PE_FAILED);
+                break;
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
             {
                 if(currentState==STATE_SECONDARY_PE)
                     APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+                break;
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                if(currentState==STATE_SECONDARY_PE )
+                if(currentState==STATE_SECONDARY_PE)
                     APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                break;
             }
+
             break;
 
         case CAN_ID_STATUS_A2:
+            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\nReceived Status: %s\r\n", CAN_statusStr[rxData[0]]);
+            UART_SendMessage(gArr_DebugMsg);
             if (rxData[0] == CAN_PE_SUCCESS)
             {
                 APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
+                break;
             }
             else if(rxData[0] == CAN_PE_FAILED)
             {
                 if(Global_u8CurrentAnchor == CAN_ANCHOR_2 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
                     APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+                break;
 
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
             {
                 if(currentState==STATE_SECONDARY_PE)
                     APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+                break;
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
                 if(currentState==STATE_SECONDARY_PE )
                     APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                break;
             }
             break;
 
         case CAN_ID_STATUS_A3:
+            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\nReceived Status: %s\r\n", CAN_statusStr[rxData[0]]);
+            UART_SendMessage(gArr_DebugMsg);
             if (rxData[0] == CAN_PE_SUCCESS)
             {
                 APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
+                break;
             }
             else if(rxData[0] == CAN_PE_FAILED)
             {
                 if(Global_u8CurrentAnchor == CAN_ANCHOR_3 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
                     APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+                break;
 
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
             {
                 if(currentState==STATE_SECONDARY_PE)
                     APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+                break;
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
                 if(currentState==STATE_SECONDARY_PE )
                     APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                break;
             }
             break;
 
@@ -242,7 +271,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         case CAN_ID_WAKEUP_NOTIFICATION_A1:
             if(currentState == STATE_IDLE){
                 currentState = STATE_PRIMARY_TDM;
-                lock=1;
+                Global_u8CurrentDeviceId = 0;
+                Global_u8SendPE = 1;
                 break;
             }
             APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
@@ -279,8 +309,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         default:
         {
-            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Received unknown message ID: 0x%03X\r\n", (unsigned)messageId);
-            UART_SendMessage(gArr_DebugMsg);
+            // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Received unknown message ID: 0x%03X\r\n", (unsigned)messageId);
+            // UART_SendMessage(gArr_DebugMsg);
             break;
         }
     }

@@ -149,7 +149,7 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
              CAN_CommandStrings[Copy_enuCommand], Copy_u8ReceiverId, Copy_u8Data);
     }
     UART_SendMessage(gArr_DebugMsg);
-    UART_SendMessage("\n============================\n\n");
+    UART_SendMessage("============================\n\n");
 
     // Send command message before printing the output
     CAN_voidSendMsg(CAN_ID_COMMANDS, loc_u8CanData);
@@ -167,11 +167,11 @@ void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Hando
     UART_SendMessage("============================\n");
 
     snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
-            "[INFO] Command Sent :\n  - Command ID : %s\n  - Receiver ID : %d\n  - Handover To : %d\n - Device Id: %d\n", 
-            CAN_CommandStrings[loc_u8CanData[0]], Copy_u8ReceiverId, Copy_u8HandoverTo,Copy_u8deviceId);
+            "[INFO] Command Sent :\n - Command Name: CAN_COMMAND_HANDOVER\n  - Handover from : Anchor %d\n  - Handover to : Anchor %d\n - Device Id: %d\n", Copy_u8ReceiverId, Copy_u8HandoverTo,
+            Copy_u8deviceId);
 
     UART_SendMessage(gArr_DebugMsg);
-    UART_SendMessage("\n============================\n\n");
+    UART_SendMessage("============================\n\n");
 
     // Send command message before printing the output
     CAN_voidSendMsg(CAN_ID_COMMANDS, loc_u8CanData);
