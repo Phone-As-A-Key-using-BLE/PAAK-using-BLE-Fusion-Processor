@@ -19,6 +19,8 @@
 #include "HAL/LED/led.h"
 #include "MCAL/GPIO/gpio.h"
 #include "HAL/PUSHBUTTON/pushbuttons.h"
+#include "APP/DeviceRangingTypeManager.h"
+#include "APP/Timer.h"
 
 volatile uint32_t sysCounter;
 

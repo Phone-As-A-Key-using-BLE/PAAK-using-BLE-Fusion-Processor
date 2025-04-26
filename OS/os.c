@@ -9,6 +9,7 @@
 
 #include "os.h"
 
+
 volatile SystemState currState = STATE_NORMAL;
 
 //volatile uint32_t sysCounter = 0;  // Define the SysTick counter
@@ -429,6 +430,7 @@ void OS_Init(void) {
     UART_Init();
     ADC_Init();
     NVM_Init();
+    TimerDriver_Init();
     DeviceStateManager_Init();
 
 

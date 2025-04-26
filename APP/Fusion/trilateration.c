@@ -65,9 +65,9 @@ Measurement_Type Master_trilaterate_position(object_list arr_object_list[NUM_OF_
 
     // Anchor coordinates 140cm x 80cm
     Measurement anchorCoordinates[NUM_OF_ANCHORS] = {
-        {-0.7,0},    // Anchor1
-        {0.7,0.4},   // Anchor2
-        {0.7,-0.4}   // Anchor3
+        {0.7,-0.4},    // Anchor1
+        {-0.7,0},   // Anchor2
+        {0.7,0.4}   // Anchor3
     };
 //(x-x1)^2+(y-y1^2)=r^2
     // Construct matrices A and B

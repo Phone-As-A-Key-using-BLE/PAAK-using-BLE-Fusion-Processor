@@ -14,6 +14,8 @@
 #include "DeviceRangingTypeManager.h"
 #include "APP/CAN_App.h"
 #include "APP/APP_FSM.h"
+#include "APP/Timer.h"
+#include "APP/ErrorHandling.h"
 //Fusion
 #include "APP/Fusion/Trilateration.h"
 #include "APP/Fusion/Particle.h"
@@ -239,6 +241,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 break;
 
             case EVENT_HANDOVER_SUCCESS:
+                TimerDriver_Stop();
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending trigger distance measurement command to anchor %d...\n", Global_u8CurrentAnchor);
                 UART_SendMessage(gArr_DebugMsg);
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
@@ -250,12 +253,13 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             break;
         }
 
-        if(Copy_structEvent == EVENT_RECEIVE_DISTANCE || Copy_structEvent == EVENT_HANDOVER_FAILED){
+        if(Copy_structEvent == EVENT_RECEIVE_DISTANCE || Copy_structEvent == EVENT_HANDOVER_FAILED ){
             if (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX)
             {
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending handover command from anchor %d to anchor %d...\n", Global_u8CurrentAnchor-1 , Global_u8CurrentAnchor);
                 UART_SendMessage(gArr_DebugMsg);
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
+                TimerDriver_Start(3000, HandoverTimeoutHandler);
                 Global_u8SendHandover = 1;
                 break;
             }
@@ -324,12 +328,12 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         /******* Add functions for distance 3 calculations  *******/
         //Global_f64Readings[2] = ???
         // For testObj array:
-    //   testObj[0] = (object_list){Global_f64Readings[1], 1};
-     //  testObj[1] = (object_list){Global_f64Readings[2], 2};
-     //  testObj[2] = (object_list){Global_f64Readings[3], 3};
-    testObj[0] = (object_list){0.4,1};
-    testObj[1] = (object_list){1.61,2};
-    testObj[2] = (object_list){1.4,3};
+      testObj[0] = (object_list){Global_f64Readings[1], 1};
+      testObj[1] = (object_list){Global_f64Readings[2], 2};
+      testObj[2] = (object_list){Global_f64Readings[3], 3};
+    // testObj[0] = (object_list){0.8,1};
+    // testObj[1] = (object_list){1.5,2};
+    // testObj[2] = (object_list){0,3};
         // For estimate_final array:
         estimate_final[0] = 0;
         estimate_final[1] = 0;

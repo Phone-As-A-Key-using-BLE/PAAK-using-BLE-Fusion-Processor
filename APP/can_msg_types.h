@@ -14,7 +14,8 @@
 *************************************************************************************
 ********************************************************************************** */
 #include "CAN_App.h"
-
+#include <stdint.h>
+#include <stdio.h>
 #if (CAN_ANCHOR_ID == CAN_MASTER_NODE)
 /*! Bluetooth Identity Address - array of 6 bytes. */
 typedef struct
