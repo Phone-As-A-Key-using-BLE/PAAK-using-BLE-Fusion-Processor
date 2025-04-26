@@ -124,8 +124,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             anchorID = 1;
             counter++;
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
-                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 counter = 0;
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             }
             break;
 
@@ -134,8 +134,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             anchorID = 1;
             counter++;
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
-                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 counter = 0;
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             }
             break;
 
@@ -144,8 +144,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             anchorID = 2;
             counter++;
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
-                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 counter = 0;
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             }
             break;
 
@@ -154,8 +154,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             anchorID = 2;
             counter++;
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
-                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 counter = 0;
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             }
             break;
 
@@ -164,8 +164,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             anchorID = 3;
             counter++;
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
-                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 counter = 0;
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             }
             break;
 
@@ -174,8 +174,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             anchorID = 3;
             counter++;
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
-                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 counter = 0;
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
             }
             break;
 
@@ -272,6 +272,10 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             if(currentState == STATE_IDLE){
                 currentState = STATE_PRIMARY_TDM;
                 Global_u8CurrentDeviceId = 0;
+                Global_u8SendPE = 1;
+                break;
+            }
+            else if(currentState == STATE_SECONDARY_PE){
                 Global_u8SendPE = 1;
                 break;
             }
