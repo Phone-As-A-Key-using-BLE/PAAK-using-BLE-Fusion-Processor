@@ -37,8 +37,9 @@ extern uint8_t isBondingDataReceived;
         }
         if(Global_u8SendHandover){
             Global_u8SendHandover = 0;
-            if(Global_u8CurrentAnchor > CAN_ANCHOR_MAX)
+            if(Global_u8CurrentAnchor > CAN_ANCHOR_MAX){
                 CAN_voidSendHandoverCommand(CAN_ANCHOR_MAX, CAN_ANCHOR_1, Global_u8CurrentDeviceId);
+            }
             else
                 CAN_voidSendHandoverCommand(Global_u8CurrentAnchor - 1, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
         }

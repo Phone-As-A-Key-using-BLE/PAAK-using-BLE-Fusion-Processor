@@ -196,14 +196,12 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
             {
-                if(currentState==STATE_SECONDARY_PE)
-                    APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
                 break;
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                if(currentState==STATE_SECONDARY_PE)
-                    APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
                 break;
             }
 
@@ -226,14 +224,12 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
             {
-                if(currentState==STATE_SECONDARY_PE)
-                    APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
                 break;
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                if(currentState==STATE_SECONDARY_PE )
-                    APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
                 break;
             }
             break;
@@ -255,14 +251,12 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
             {
-                if(currentState==STATE_SECONDARY_PE)
-                    APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
                 break;
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                if(currentState==STATE_SECONDARY_PE )
-                    APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
                 break;
             }
             break;
