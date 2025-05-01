@@ -39,9 +39,12 @@ extern uint8_t Global_u8SendPE;
 extern uint8_t Global_u8SendTDM;
 extern uint8_t Global_u8SendHandover;
 extern uint8_t Global_u8CurrentDeviceId;
-
+extern uint8_t Global_u8IsDisconnectNeeded;
+extern uint8_t Global_u8HandoverTo;
+extern uint8_t Global_u8isAnchorConnected[CAN_ANCHOR_MAX+1];
+extern uint8_t Global_u8isWaitingForTDM[CAN_ANCHOR_MAX+1];
 /* Debug print buffer */
-extern char gArr_DebugMsg[512];
+extern char gArr_DebugMsg[1024];
 
 extern APP_tenuStates currentState;
 
@@ -190,7 +193,13 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_PE_FAILED)
             {
-                if(Global_u8CurrentAnchor == CAN_ANCHOR_1 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
+                Global_u8isAnchorConnected[CAN_ANCHOR_1] = 0;
+                if(Global_u8isWaitingForTDM[CAN_ANCHOR_1]){
+                    Global_u8isWaitingForTDM[CAN_ANCHOR_1] = 0;
+                    Global_u8SendPE = 1;
+                    break;
+                }
+                if(Global_u8CurrentAnchor == CAN_ANCHOR_1 || Global_u8HandoverTo == CAN_ANCHOR_1)
                     APP_voidFSMHandler(EVENT_PRIMARY_PE_FAILED);
                 break;
             }
@@ -201,7 +210,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                if(Global_u8HandoverTo == CAN_ANCHOR_1)
+                    APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
                 break;
             }
 
@@ -217,7 +227,13 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_PE_FAILED)
             {
-                if(Global_u8CurrentAnchor == CAN_ANCHOR_2 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
+                Global_u8isAnchorConnected[CAN_ANCHOR_2] = 0;
+                if(Global_u8isWaitingForTDM[CAN_ANCHOR_2]){
+                    Global_u8isWaitingForTDM[CAN_ANCHOR_2] = 0;
+                    Global_u8SendPE = 1;
+                    break;
+                }
+                if((Global_u8HandoverTo == CAN_ANCHOR_2 || Global_u8CurrentAnchor == CAN_ANCHOR_2) && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
                     APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
                 break;
 
@@ -229,7 +245,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                if(Global_u8HandoverTo == CAN_ANCHOR_2)
+                    APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
                 break;
             }
             break;
@@ -244,8 +261,15 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_PE_FAILED)
             {
-                if(Global_u8CurrentAnchor == CAN_ANCHOR_3 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
+                Global_u8isAnchorConnected[CAN_ANCHOR_3] = 0;
+                if(Global_u8isWaitingForTDM[CAN_ANCHOR_3]){
+                    Global_u8isWaitingForTDM[CAN_ANCHOR_3] = 0;
+                    Global_u8SendPE = 1;
+                    break;
+                }
+                if((Global_u8HandoverTo == CAN_ANCHOR_3 || Global_u8CurrentAnchor == CAN_ANCHOR_3) && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
                     APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+                else
                 break;
 
             }
@@ -256,7 +280,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                if(Global_u8HandoverTo == CAN_ANCHOR_3)
+                    APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
                 break;
             }
             break;
@@ -269,19 +294,27 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
                 Global_u8SendPE = 1;
                 break;
             }
-            else if(currentState == STATE_SECONDARY_PE){
-                Global_u8SendPE = 1;
-                break;
-            }
-            APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+            // else if(currentState == STATE_SECONDARY_PE){
+            //     Global_u8SendPE = 1;
+            //     break;
+            // }
+            // else if(currentState == STATE_VEHICLE_LEVEL_DECISION_MAKING){
+            //     Global_u8CurrentAnchor = CAN_ANCHOR_1;
+            //     Global_u8SendPE = 1;
+            //     break;
+            // }
+            if(Global_u8CurrentAnchor == CAN_ANCHOR_1)
+                APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
-            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+            if(Global_u8CurrentAnchor == CAN_ANCHOR_2)
+                APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
-            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+            if(Global_u8CurrentAnchor == CAN_ANCHOR_3 || Global_u8HandoverTo == CAN_ANCHOR_3)
+                APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         /* RSSI messages -------------------------------------------------- */

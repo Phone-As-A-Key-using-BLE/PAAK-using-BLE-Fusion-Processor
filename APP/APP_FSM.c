@@ -26,7 +26,7 @@ void delay_ms(uint32_t ms) {
 }
 
 /* Debug print buffer */
-char gArr_DebugMsg[600];
+char gArr_DebugMsg[1024];
 APP_tenuStates currentState = STATE_IDLE;
 
 uint8_t Global_PEDone[CAN_ANCHOR_MAX+1] = {0};
@@ -125,6 +125,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             currentState = STATE_PRIMARY_TDM;
             UART_SendMessage("\n[SUCCESS] Primary Passive Entry successful. Proceeding to Trigger Distance Measurement (TDM)...\n");
             Global_u8isWaitingForTDM[CAN_PRIMARY_ANCHOR] = 1;
+            TimerDriver_Start(1000, TDMTimeoutHandler);
             CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Loc_u8DeviceId);
         }
         else if (Copy_structEvent == EVENT_PRIMARY_PE_FAILED)
@@ -203,6 +204,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 Global_PEDone[i]=0;
             if(Global_u8isAnchorConnected[CAN_PRIMARY_ANCHOR] == 1){
                 Global_u8isWaitingForTDM[CAN_PRIMARY_ANCHOR] = 1;
+                TimerDriver_Start(1000, TDMTimeoutHandler);
                 CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Loc_u8DeviceId);
             }
             else
@@ -228,7 +230,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                         if (Global_u8CurrentAnchor != CAN_PRIMARY_ANCHOR) {
                             // After receiving distance from secondary, return to anchor 1
                             Global_u8HandoverTo = CAN_PRIMARY_ANCHOR;
-                            //TimerDriver_Start(3000, HandoverTimeoutHandler);
+                            TimerDriver_Start(1000, HandoverTimeoutHandler);
                             Global_u8SendHandover = 1;
                         } else {
                             // In anchor 1, decide next unprocessed secondary anchor
@@ -246,7 +248,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                                         "\n[INFO] Handover from anchor 1 to anchor %d...\n", nextAnchor);
                                 UART_SendMessage(gArr_DebugMsg);
                                 Global_u8HandoverTo = nextAnchor;
-                                //TimerDriver_Start(3000, HandoverTimeoutHandler);
+                                TimerDriver_Start(1000, HandoverTimeoutHandler);
                                 Global_u8SendHandover = 1;
                             } else if (Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS) {
                                 UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
@@ -278,6 +280,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
                                 if (Global_u8HandoverFailCount[Global_u8CurrentAnchor] >= MAX_HANDOVER_RETRIES)
                                 {
+                                    CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor, Loc_u8DeviceId);
                                     /* Exceeded max retries: reset counter and trigger PE to next anchor */
                                     UART_SendMessage("\n[INFO] Max handover retries reached. Sending PE to next anchor...\n");
                                     Global_u8HandoverFailCount[Global_u8CurrentAnchor] = 0;
@@ -307,6 +310,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                                 {
                                     /* Retry handover as before */
                                     UART_SendMessage("\n[INFO] Retrying handover...\n");
+                                    TimerDriver_Start(1000, HandoverTimeoutHandler);
                                     Global_u8SendHandover = 1;
                                 }
                                 break;
@@ -324,6 +328,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                         // from the current anchor (if not primary)
                         if (Global_u8CurrentAnchor != CAN_PRIMARY_ANCHOR) {
                             if(Global_u8isAnchorConnected[Global_u8CurrentAnchor] == 1){
+                                    TimerDriver_Start(1000, TDMTimeoutHandler);
                                     Global_u8isWaitingForTDM[Global_u8CurrentAnchor] = 1;
                                     CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, Global_u8CurrentAnchor, Loc_u8DeviceId);
                             }
@@ -339,7 +344,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                         TimerDriver_Stop();
                         Global_u8isAnchorConnected[Global_u8CurrentAnchor] = 0;
                         Global_u8isAnchorConnected[Global_u8HandoverTo] = 0;
-                        //CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor-1, Loc_u8DeviceId);
+                        CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor-1, Loc_u8DeviceId);
                         Global_u8CurrentAnchor = Global_u8HandoverTo;
                         snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
                                 "\n[INFO] Handover failed on anchor %d and was reset .. Sending PE to this anchor\n", Global_u8CurrentAnchor);
@@ -425,8 +430,10 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
         currentState = STATE_PRIMARY_TDM;
         //Add fusion Algo
-        if(Global_u8isAnchorConnected[Global_u8CurrentAnchor] == 1)
+        if(Global_u8isAnchorConnected[Global_u8CurrentAnchor] == 1){
+                TimerDriver_Start(1000, TDMTimeoutHandler);
                 Global_u8SendTDM=1;
+        }
         else
                 Global_u8SendPE=1;
         // CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8DeviceId);

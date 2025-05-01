@@ -10,7 +10,7 @@
 
 #include "APP_FSM.h"
 #define MAX_PE_RETRIES 3  // User-defined max retries for PE
-#define MAX_HANDOVER_RETRIES 10
+#define MAX_HANDOVER_RETRIES 5
 
 typedef enum {
     STATE_IDLE,
