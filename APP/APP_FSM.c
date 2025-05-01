@@ -26,8 +26,9 @@ void delay_ms(uint32_t ms) {
 }
 
 /* Debug print buffer */
-char gArr_DebugMsg[512];
+char gArr_DebugMsg[600];
 APP_tenuStates currentState = STATE_IDLE;
+uint8_t upOrdown=1;
 
 uint8_t Global_PEDone[CAN_ANCHOR_MAX+1] = {0};
 double_t Global_f64Readings[CAN_ANCHOR_MAX+1] = {0};
@@ -143,13 +144,13 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             currentState = STATE_WAKEUP_DECISION_MAKING;
             UART_SendMessage("\n[INFO] Distance measurement completed. Evaluating wake-up decision...\n");
 
-            if (!Global_u8FirstTime)
-            {
-                currentState = STATE_PRIMARY_TDM;
-                // Trigger distance measurement when the device is out of range
-                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Loc_u8DeviceId);
-                break;
-            }
+            // if (!Global_u8FirstTime)
+            // {
+            //     currentState = STATE_PRIMARY_TDM;
+            //     // Trigger distance measurement when the device is out of range
+            //     CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Loc_u8DeviceId);
+            //     break;
+            // }
             Global_u8FirstTime = 0;
 
             uint8_t Loc_u8Distance = CAN_structGetDistanceData().distanceIntegerPart;
@@ -186,14 +187,14 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_DEVICE_IN_RANGE && Global_u8FirstTime)
         {
             // Initialize PE process
-            Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
+            //Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
             Global_u8SuccessPE = 0;
             Global_u8FirstTime = 0;
             Global_u8PERetryCount = 0;
              uint8_t i;
             for (i = CAN_PRIMARY_ANCHOR; i <= CAN_ANCHOR_MAX; i++)
                 Global_PEDone[i]=0;
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Loc_u8DeviceId);
+            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, Global_u8CurrentAnchor, Loc_u8DeviceId);
             break;
         }
 
@@ -210,10 +211,28 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 Global_u8PERetryCount = 0;
                 //CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor, Loc_u8DeviceId);
                 // Move to the next available anchor
-                do {
-                    Global_u8CurrentAnchor++;
-                } while (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor]);
-
+                if(upOrdown){
+                    do {
+                        Global_u8CurrentAnchor++;
+                    } while (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor]);
+                    if(Global_u8CurrentAnchor>CAN_ANCHOR_MAX && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS){
+                        Global_u8CurrentAnchor = CAN_ANCHOR_3;
+                    }
+                    else if(Global_u8CurrentAnchor>CAN_ANCHOR_MAX && Global_u8SuccessPE < APP_MINUMUM_DISTANCE_READINGS){
+                        Global_u8CurrentAnchor = CAN_ANCHOR_1;
+                    }
+                }
+                else{
+                    do {
+                        Global_u8CurrentAnchor--;
+                    } while (Global_u8CurrentAnchor >= CAN_ANCHOR_1 && Global_PEDone[Global_u8CurrentAnchor]);
+                    if(Global_u8CurrentAnchor == 0 && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS){
+                        Global_u8CurrentAnchor = CAN_ANCHOR_1;
+                    }
+                    else if(Global_u8CurrentAnchor == 0 && Global_u8SuccessPE < APP_MINUMUM_DISTANCE_READINGS){
+                        Global_u8CurrentAnchor = CAN_ANCHOR_1;
+                    }
+                }
                 
                 break;
 
@@ -242,6 +261,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
             case EVENT_HANDOVER_SUCCESS:
                 TimerDriver_Stop();
+                //CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor-1, Loc_u8DeviceId);
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending trigger distance measurement command to anchor %d...\n", Global_u8CurrentAnchor);
                 UART_SendMessage(gArr_DebugMsg);
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
@@ -254,32 +274,33 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         }
 
         if(Copy_structEvent == EVENT_RECEIVE_DISTANCE || Copy_structEvent == EVENT_HANDOVER_FAILED ){
-            if (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX)
+            if (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX && Global_u8SuccessPE < APP_MINUMUM_DISTANCE_READINGS)
             {
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending handover command from anchor %d to anchor %d...\n", Global_u8CurrentAnchor-1 , Global_u8CurrentAnchor);
                 UART_SendMessage(gArr_DebugMsg);
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
-                TimerDriver_Start(3000, HandoverTimeoutHandler);
+                //TimerDriver_Start(3000, HandoverTimeoutHandler);
                 Global_u8SendHandover = 1;
                 break;
             }
-            else if (Global_u8CurrentAnchor >= CAN_ANCHOR_MAX && Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
+            else if (Global_u8SuccessPE >= APP_MINUMUM_DISTANCE_READINGS)
             {
+                upOrdown ^= 1;
                 uint8_t i;
                 for (i = CAN_PRIMARY_ANCHOR; i <= CAN_ANCHOR_MAX; i++)
                     Global_PEDone[i]=0;
                 // Initialize PE process
-                // Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
+                //Global_u8CurrentAnchor = CAN_ANCHOR_MAX-1;
                 Global_u8SuccessPE = 0;
                 Global_u8FirstTime = 1;
                 Global_u8PERetryCount = 0;
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
-                TimerDriver_Start(3000, HandoverTimeoutHandler);
-                Global_u8SendHandover=1;
+                // TimerDriver_Start(3000, HandoverTimeoutHandler);
+                //Global_u8SendHandover=1;
 
                 UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
                 currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-                //APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
                 break;
             }
             else if (Global_u8CurrentAnchor > CAN_ANCHOR_MAX && Global_u8SuccessPE < APP_MINUMUM_DISTANCE_READINGS)
@@ -306,7 +327,6 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         if (Copy_structEvent == EVENT_HANDOVER_SUCCESS)
         {
             TimerDriver_Stop();
-            Global_u8CurrentAnchor = CAN_ANCHOR_1;
             uint8_t Loc_u8Distance = CAN_structGetDistanceData().distanceIntegerPart;
             if (Loc_u8Distance <= APP_DISTANCE_TRIGGER_THRESHOLD)
             {
@@ -349,16 +369,16 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", measureA.x,measureA.y);
         // UART_SendMessage(gArr_DebugMsg);
 
-        //Particle filter
-        if (firstTimeFlag){
-          firstTimeFlag = 0;
-          Master_initialize_particles(particles,measureA.x,measureA.y,1.00);
-        }
+        // //Particle filter
+        // if (firstTimeFlag){
+        //   firstTimeFlag = 0;
+        //   Master_initialize_particles(particles,measureA.x,measureA.y,1.00);
+        // }
 
-        Master_prediction(particles);
-        Master_update_particles(particles,measureA);
-        Master_resample(particles);
-        Master_estimate(particles,estimate_final);
+        // Master_prediction(particles);
+        // Master_update_particles(particles,measureA);
+        // Master_resample(particles);
+        // Master_estimate(particles,estimate_final);
 
         //sprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Particle Filter: (x = %.2f , y = %.2f)\n", estimate_final[0],estimate_final[1]);
         //UART_SendMessage(gArr_DebugMsg);
@@ -367,8 +387,10 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
         currentState = STATE_PRIMARY_TDM;
         //Add fusion Algo
+        // if(!upOrdown){
+        //     CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_ANCHOR_1, Loc_u8DeviceId);
+        // }
         Global_u8SendTDM=1;
-        // CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8DeviceId);
         // APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
         break;
 

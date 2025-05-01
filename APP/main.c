@@ -18,6 +18,7 @@ extern uint8_t Global_u8CurrentDeviceId;
 extern uint8_t Global_u8CurrentAnchor;
 extern APP_tenuStates currentState;
 extern uint8_t isBondingDataReceived;
+extern uint8_t upOrdown;
  int main(void)
 {
     OS_Init();
@@ -37,11 +38,20 @@ extern uint8_t isBondingDataReceived;
         }
         if(Global_u8SendHandover){
             Global_u8SendHandover = 0;
-            if(Global_u8CurrentAnchor > CAN_ANCHOR_MAX){
-                CAN_voidSendHandoverCommand(CAN_ANCHOR_MAX, CAN_ANCHOR_1, Global_u8CurrentDeviceId);
+            if(upOrdown){
+                if(Global_u8CurrentAnchor > CAN_ANCHOR_MAX || Global_u8CurrentAnchor == CAN_ANCHOR_1){
+                    CAN_voidSendHandoverCommand(CAN_ANCHOR_MAX, CAN_ANCHOR_1, Global_u8CurrentDeviceId);
+                }
+                else
+                    CAN_voidSendHandoverCommand(Global_u8CurrentAnchor - 1, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
             }
-            else
-                CAN_voidSendHandoverCommand(Global_u8CurrentAnchor - 1, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
+            else{
+                if(Global_u8CurrentAnchor > CAN_ANCHOR_MAX){
+                    CAN_voidSendHandoverCommand(CAN_ANCHOR_1, CAN_ANCHOR_MAX, Global_u8CurrentDeviceId);
+                }
+                else
+                    CAN_voidSendHandoverCommand(Global_u8CurrentAnchor+1, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
+            }
         }
         __asm("WFE");
     }

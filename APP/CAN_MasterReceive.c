@@ -269,19 +269,18 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
                 Global_u8SendPE = 1;
                 break;
             }
-            else if(currentState == STATE_SECONDARY_PE){
-                Global_u8SendPE = 1;
-                break;
-            }
-            APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+            if(Global_u8CurrentAnchor == CAN_ANCHOR_1)
+                 APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
-            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+            if(Global_u8CurrentAnchor == CAN_ANCHOR_2)
+                APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
-            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+            if(Global_u8CurrentAnchor == CAN_ANCHOR_3)
+                APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         /* RSSI messages -------------------------------------------------- */

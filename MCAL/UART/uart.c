@@ -69,13 +69,14 @@ void UART_Init(void)
  * Description: Sends a message (string) through UART0 by transmitting each character in the string sequentially.
  * The transmission continues until the null terminator ('\0') is encountered.
  ***********************************************/
-void UART_SendMessage(const char *array)
+void UART_SendMessage(char *array)
 {
     while (*array)
     {
         UARTCharPut(UART_BASE_ADDRESS, *array); // Transmit each character
         array++;
     }
+    array[0] = '\0';
 }
 
 /***********************************************

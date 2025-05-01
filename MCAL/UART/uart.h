@@ -39,7 +39,7 @@ unsigned char data;
   Function Prototypes
  ***********************************************/
 void UART_Init(void);
-void UART_SendMessage(const char *array);
+void UART_SendMessage(char *array);
 int32_t UART_RecieveMessage(void);
 void UART_SendNumber(uint32_t number);
 void UART_ProcessCommand(const char *command);  // Process received diagnostic commands
