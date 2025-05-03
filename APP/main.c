@@ -1,9 +1,14 @@
-///*
-// * Module Name: MASTER ECU1 Application
-// * Author: MOHAMAD WALEED & ABDELRAHMAN
+// /*
+// * Name: 
+// * Author: 
 // * Purpose: Entry point for the Master ECU. Uses OS Layer for task management.
-//*/
+// */
 
+// CONNECTIVITY_Message_t test = {
+//     .msg_type = MSG_TYPE_VEHICLE_STATE,
+//     .states = {1, 2, 3, 4, 5} // Directly initializing status
+// };
+// CONNECTIVITY_SendData(&test);
 #include "CAN_App.h"
 #include "OS/os.h"
 #include "Connectivity/connectivity.h"
