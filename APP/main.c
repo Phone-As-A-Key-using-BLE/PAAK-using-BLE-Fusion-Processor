@@ -15,6 +15,13 @@ extern uint8_t isBondingDataReceived;
 extern uint8_t Global_u8HandoverTo;
 extern uint8_t Global_u8isWaitingForTDM[CAN_ANCHOR_MAX + 1];
 extern uint8_t Global_u8Event;
+
+// CONNECTIVITY_Message_t test = {
+//     .msg_type = MSG_TYPE_VEHICLE_STATE,
+//     .states = {1, 2, 3, 4, 5} // Directly initializing status
+// };
+// CONNECTIVITY_SendData(&test);
+
  int main(void)
 {
     OS_Init();
