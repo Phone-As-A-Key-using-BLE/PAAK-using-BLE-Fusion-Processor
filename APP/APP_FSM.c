@@ -26,7 +26,7 @@ void delay_ms(uint32_t ms) {
 }
 
 /* Debug print buffer */
-char gArr_DebugMsg[512];
+char gArr_DebugMsg[1024];
 APP_tenuStates currentState = STATE_IDLE;
 
 uint8_t Global_PEDone[CAN_ANCHOR_MAX+1] = {0};

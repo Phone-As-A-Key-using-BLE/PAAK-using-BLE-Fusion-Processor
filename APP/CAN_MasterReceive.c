@@ -41,7 +41,7 @@ extern uint8_t Global_u8SendHandover;
 extern uint8_t Global_u8CurrentDeviceId;
 
 /* Debug print buffer */
-extern char gArr_DebugMsg[512];
+extern char gArr_DebugMsg[1024];
 
 extern APP_tenuStates currentState;
 
@@ -363,15 +363,9 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
     uint16_t dqiRaw = (uint16_t)rxData[6] | ((uint16_t)rxData[7] << 8);
     s_distanceData.dqiPercentage = (float)dqiRaw * 0.01f;
 
+    double Loc_f64Distance = s_distanceData.distanceIntegerPart + (s_distanceData.distanceDecimalPart/100.0);
 
-    snprintf(
-    gArr_DebugMsg,
-    sizeof(gArr_DebugMsg),
-    "Anchor %d, Dist: %d.%d\r\n",
-    anchorID,
-    s_distanceData.distanceIntegerPart,
-    s_distanceData.distanceDecimalPart
-    );
+    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),"Anchor %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, "CS", Loc_f64Distance);
     UART_SendMessage (gArr_DebugMsg);
 
     /* (Optional) If you also want to log the DQI:
@@ -476,15 +470,27 @@ static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
             return; // Unknown message ID
     }
 
+    // /* Log the parsed data */
+    // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "[INFO] RSSI Data:\n- Distance: %d -\r\n", 
+    //             gRSSIData[Global_u8CurrentAnchor].distance);
+    // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Distance (RADE): 0.%d m\n", 
+    //          gRSSIData[Global_u8CurrentAnchor].distance);
+    // UART_SendMessage(gArr_DebugMsg);
+    // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Anchor %d\n", 
+    //          gRSSIData[Global_u8CurrentAnchor].anchorId);
+    // UART_SendMessage(gArr_DebugMsg);
+    if(currentState == STATE_SECONDARY_PE){
+    sprintf(gArr_DebugMsg,"Anchor %d Distance %s: %.2f meter\r\n", gRSSIData[Global_u8CurrentAnchor].anchorId, "RSSI", (gRSSIData[Global_u8CurrentAnchor].distance)/100.0);
     /* Log the parsed data */
-    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "[INFO] RSSI Data:\n- Distance: %d -\r\n", 
-                gRSSIData[Global_u8CurrentAnchor].distance);
-    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Distance (RADE): 0.%d m\n", 
-             gRSSIData[Global_u8CurrentAnchor].distance);
+    // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "[INFO] RSSI Data:\n- Distance: %d -\r\n", 
+    //             gRSSIData[Global_u8CurrentAnchor].distance);
+    // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Distance (RADE): 0.%d m\n", 
+    //          gRSSIData[Global_u8CurrentAnchor].distance);
+    // UART_SendMessage(gArr_DebugMsg);
+    // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Anchor %d\n", 
+    //          gRSSIData[Global_u8CurrentAnchor].anchorId);
     UART_SendMessage(gArr_DebugMsg);
-    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Anchor %d\n", 
-             gRSSIData[Global_u8CurrentAnchor].anchorId);
-    UART_SendMessage(gArr_DebugMsg);
+    }
 
     /* Trigger an event if needed */
     APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);

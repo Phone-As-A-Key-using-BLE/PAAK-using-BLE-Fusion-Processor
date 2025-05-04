@@ -29,7 +29,7 @@
 #include "can_msg_types.h"
 #include "CAN_Send.h"
 
-extern char gArr_DebugMsg[512];     // Buffer for formatted print output
+extern char gArr_DebugMsg[1024];     // Buffer for formatted print output
 const char* CAN_CommandStrings[] = {
     "CAN_COMMAND_TRIGGER_OWNER_PAIRING",
     "CAN_COMMAND_TRIGGER_PASSIVE_ENTRY",
