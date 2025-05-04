@@ -509,6 +509,7 @@ static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
         default:
             return; // Unknown message ID
     }
+    if(currentState == STATE_SECONDARY_PE){
     sprintf(gArr_DebugMsg,"Anchor %d Distance %s: %.2f meter\r\n", gRSSIData[Global_u8CurrentAnchor].anchorId, "RSSI", (gRSSIData[Global_u8CurrentAnchor].distance)/100.0);
     /* Log the parsed data */
     // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "[INFO] RSSI Data:\n- Distance: %d -\r\n", 
@@ -519,6 +520,7 @@ static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
     // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Anchor %d\n", 
     //          gRSSIData[Global_u8CurrentAnchor].anchorId);
     UART_SendMessage(gArr_DebugMsg);
+    }
 
     /* Trigger an event if needed */
     APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
