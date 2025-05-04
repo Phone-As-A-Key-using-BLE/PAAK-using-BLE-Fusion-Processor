@@ -77,7 +77,7 @@ void CONNECTIVITY_ReceiveHandleMessage(uint8_t *buffer, CONNECTIVITY_Message_t *
             msg->states.batteryLevel = buffer[msgBytes++];
             msg->states.doorsLocked = buffer[msgBytes++];
             msg->states.acState = buffer[msgBytes++];
-            msg->states.tirePSI = buffer[msgBytes++];s
+            msg->states.tirePSI = buffer[msgBytes++];
             break;
         case MSG_TYPE_ALERT:
             msg->alert = buffer[msgBytes++];
