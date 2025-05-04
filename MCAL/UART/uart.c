@@ -207,37 +207,3 @@ void UART_SendHexConnectivity(uint8_t *dataArray, uint8_t stopIndex) {
         UARTCharPut(UART_BASE_ADDRESS, dataArray[i]); // Send each byte over UART
     }
 }
-
-
-int my_sprintf(char** buffer, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-
-    // First pass to determine buffer size
-    int len = vsnprintf(NULL, 0, format, args);
-    if (len < 0) {
-        va_end(args);
-        return -1; // Error during formatting
-    }
-
-    // Allocate buffer (add 1 for null terminator)
-    *buffer = (char*)malloc(len + 1);
-    if (*buffer == NULL) {
-        va_end(args);
-        return -1; // Memory allocation failed
-    }
-
-    va_end(args); // Reset args for second pass
-    va_start(args, format);
-
-    // Second pass to actually format the string
-    int written = vsnprintf(*buffer, len + 1, format, args);
-    va_end(args);
-
-    if (written < 0 || written > len) {
-        free(*buffer); // Free allocated memory on error
-        return -1; // Error during formatting or buffer overflow
-    }
-
-    return len;
-}

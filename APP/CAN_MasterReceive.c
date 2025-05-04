@@ -19,7 +19,7 @@
 #endif
 extern uint8_t Global_u8CurrentAnchor; // Temp Solution
 extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
-
+bool isResetEventRequired = 1;
 
 /* ---------------------------------------------------------------------------
  * Data structures mirroring NXP-based variables
@@ -45,7 +45,7 @@ extern uint8_t Global_u8isAnchorConnected[CAN_ANCHOR_MAX+1];
 extern uint8_t Global_u8isWaitingForTDM[CAN_ANCHOR_MAX+1];
 /* Debug print buffer */
 extern char gArr_DebugMsg[1024];
-
+extern uint8_t Global_u8ResetAndPE;
 extern APP_tenuStates currentState;
 
 volatile RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1] = {0};
@@ -303,16 +303,25 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             //     Global_u8SendPE = 1;
             //     break;
             // }
+            if(Global_u8ResetAndPE == 2){
+                Global_u8ResetAndPE--;
+            }
             if(Global_u8CurrentAnchor == CAN_ANCHOR_1)
                 APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
+            if(Global_u8ResetAndPE == 2){
+                Global_u8ResetAndPE--;
+            }
             if(Global_u8CurrentAnchor == CAN_ANCHOR_2)
                 APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
+            if(Global_u8ResetAndPE == 2){
+                Global_u8ResetAndPE--;
+            }
             if(Global_u8CurrentAnchor == CAN_ANCHOR_3 || Global_u8HandoverTo == CAN_ANCHOR_3)
                 APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;

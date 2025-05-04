@@ -15,6 +15,7 @@ extern uint8_t isBondingDataReceived;
 extern uint8_t Global_u8HandoverTo;
 extern uint8_t Global_u8isWaitingForTDM[CAN_ANCHOR_MAX + 1];
 extern uint8_t Global_u8Event;
+extern uint8_t Global_u8ResetAndPE;
 
 // CONNECTIVITY_Message_t test = {
 //     .msg_type = MSG_TYPE_VEHICLE_STATE,
@@ -47,6 +48,12 @@ extern uint8_t Global_u8Event;
         if(Global_u8Event!=0){
             Global_u8Event = 0;
             APP_voidFSMHandler(EVENT_DISTANCE_BELOW_THRESHOLD);
+        }
+        if(Global_u8ResetAndPE == 2){
+            CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor, 0);
+            if(Global_u8ResetAndPE == 1){
+                CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
+            }
         }
         __asm("WFE");
     }
