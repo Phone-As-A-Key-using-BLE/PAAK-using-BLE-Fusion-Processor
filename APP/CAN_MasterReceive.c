@@ -52,6 +52,7 @@ const char* CAN_statusStr[] = {
     "CAN_HANDOVER_SUCCESS",
     "CAN_HANDOVER_FAILED"
 };
+extern uint8_t Global_u8ResetAndPE;
 
 
 /* ---------------------------------------------------------------------------
@@ -190,8 +191,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_PE_FAILED)
             {
-                if(Global_u8CurrentAnchor == CAN_ANCHOR_1 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
-                    APP_voidFSMHandler(EVENT_PRIMARY_PE_FAILED);
+                APP_voidFSMHandler(EVENT_PRIMARY_PE_FAILED);
                 break;
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
@@ -217,8 +217,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_PE_FAILED)
             {
-                if(Global_u8CurrentAnchor == CAN_ANCHOR_2 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
-                    APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+                APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
                 break;
 
             }
@@ -244,8 +243,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_PE_FAILED)
             {
-                if(Global_u8CurrentAnchor == CAN_ANCHOR_3 && (currentState==STATE_PRIMARY_PE || currentState==STATE_SECONDARY_PE))
-                    APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
+                APP_voidFSMHandler(EVENT_SECONDARY_PE_FAILED);
                 break;
 
             }
@@ -273,14 +271,26 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
                 Global_u8SendPE = 1;
                 break;
             }
+            if(Global_u8ResetAndPE == 2){
+                Global_u8ResetAndPE--;
+                break;
+            }
             APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
+            if(Global_u8ResetAndPE == 2){
+                Global_u8ResetAndPE--;
+                break;
+            }
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
+            if(Global_u8ResetAndPE == 2){
+                Global_u8ResetAndPE--;
+                break;
+            }
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
             break;
 

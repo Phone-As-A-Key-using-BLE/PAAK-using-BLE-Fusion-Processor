@@ -49,6 +49,7 @@ extern RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1];
 //Fusion
 Particle particles[NUM_PARTICLES];
 uint8_t volatile firstTimeFlag = 1;
+uint8_t Global_u8ResetAndPE = 0;
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 {
     uint8_t Loc_u8DeviceId = 0;
@@ -221,26 +222,30 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 break;
 
             case EVENT_SECONDARY_PE_FAILED:
-                if (Global_u8PERetryCount < MAX_PE_RETRIES)
-                {
-                    Global_u8PERetryCount++;
-                    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[WARNING] Passive Entry failed on anchor %d. Retrying attempt %d/%d...\n",
-                            Global_u8CurrentAnchor, Global_u8PERetryCount, MAX_PE_RETRIES);
-                    UART_SendMessage(gArr_DebugMsg);
-                    Global_u8CurrentDeviceId = Loc_u8DeviceId;
-                    Global_u8SendPE = 1;
-                }
-                else
-                {
-                    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[ERROR] Passive Entry failed on anchor %d after maximum retries. Moving to next anchor...\n", Global_u8CurrentAnchor+1);
-                    UART_SendMessage(gArr_DebugMsg);
-                    Global_u8PERetryCount = 0;
-                    do {
-                        Global_u8CurrentAnchor++;
-                    } while (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor]);
-                    Global_u8CurrentDeviceId = Loc_u8DeviceId;
-                    Global_u8SendPE = 1;
-                }
+            case EVENT_PRIMARY_PE_FAILED:
+                // if (Global_u8PERetryCount < MAX_PE_RETRIES)
+                // {
+                //     Global_u8PERetryCount++;
+                //     snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[WARNING] Passive Entry failed on anchor %d. Retrying attempt %d/%d...\n",
+                //             Global_u8CurrentAnchor, Global_u8PERetryCount, MAX_PE_RETRIES);
+                //     UART_SendMessage(gArr_DebugMsg);
+                //     Global_u8CurrentDeviceId = Loc_u8DeviceId;
+                //     Global_u8SendPE = 1;
+                // }
+                // else
+                // {
+                //     snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[ERROR] Passive Entry failed on anchor %d after maximum retries. Moving to next anchor...\n", Global_u8CurrentAnchor+1);
+                //     UART_SendMessage(gArr_DebugMsg);
+                //     Global_u8PERetryCount = 0;
+                //     do {
+                //         Global_u8CurrentAnchor++;
+                //     } while (Global_u8CurrentAnchor <= CAN_ANCHOR_MAX && Global_PEDone[Global_u8CurrentAnchor]);
+                //     Global_u8CurrentDeviceId = Loc_u8DeviceId;
+                //     Global_u8SendPE = 1;
+                // }
+                Global_u8CurrentDeviceId = Loc_u8DeviceId;
+                // Global_u8ResetAndPE = 2;
+                Global_u8SendPE=1;
                 break;
 
             case EVENT_HANDOVER_SUCCESS:
@@ -253,6 +258,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             case EVENT_HANDOVER_FAILED:
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Handover failed try again...\n");
                 UART_SendMessage(gArr_DebugMsg);
+                Global_u8CurrentDeviceId = Loc_u8DeviceId;
+                Global_u8SendHandover = 1;
             break;
             case EVENT_PRIMARY_WAKEUP_RECEIVED:
             case EVENT_SECONDARY_WAKEUP_RECEIVED:
@@ -328,6 +335,12 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 currentState = STATE_WAKEUP_DECISION_MAKING;
                 APP_voidFSMHandler(EVENT_DISTANCE_ABOVE_THRESHOLD);
             }
+        }
+        else if(Copy_structEvent == EVENT_SECONDARY_PE_FAILED || Copy_structEvent == EVENT_PRIMARY_PE_FAILED){
+                Global_u8CurrentAnchor = CAN_ANCHOR_1;
+                Global_u8CurrentDeviceId = Loc_u8DeviceId;
+                // Global_u8ResetAndPE = 2;
+                Global_u8SendPE=1;
         }
         else if(Copy_structEvent == EVENT_HANDOVER_FAILED){
             Global_u8SendHandover=1;
