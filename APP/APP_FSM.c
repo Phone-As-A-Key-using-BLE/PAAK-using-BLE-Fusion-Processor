@@ -333,7 +333,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                         // Now that handover succeeded, you can start requesting distance
                         // from the current anchor (if not primary)
                         if (Global_u8CurrentAnchor != CAN_PRIMARY_ANCHOR) {
-                            if(Global_u8isAnchorConnected[Global_u8CurrentAnchor] == 1){
+                            if(Global_u8isAnchorConnected[Global_u8HandoverTo] == 1){
                                     TimerDriver_Start(1000, TDMTimeoutHandler);
                                     Global_u8isWaitingForTDM[Global_u8CurrentAnchor] = 1;
                                     CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, Global_u8CurrentAnchor, Loc_u8DeviceId);
@@ -413,7 +413,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         // For estimate_final array:
         estimate_final[0] = 0;
         estimate_final[1] = 0;
-        measureA = Master_trilaterate_position(testObj);
+        //measureA = Master_trilaterate_position(testObj);
 
         // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", measureA.x,measureA.y);
         // UART_SendMessage(gArr_DebugMsg);
