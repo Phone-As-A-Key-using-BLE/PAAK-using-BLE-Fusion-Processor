@@ -24,7 +24,7 @@ extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
 /* ---------------------------------------------------------------------------
  * Data structures mirroring NXP-based variables
  * ---------------------------------------------------------------------------*/
-static CAN_tstrDistance    s_distanceData       = {0};
+CAN_tstrDistance    s_distanceData       = {0};
 static CAN_tstrCommandData s_commandData        = {CAN_COMMAND_INVALID, 0};
 static add_device          s_addDeviceData      = {0};
 static remove_device_t     s_removeDeviceData   = {0};
@@ -365,8 +365,10 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
 
     double Loc_f64Distance = s_distanceData.distanceIntegerPart + (s_distanceData.distanceDecimalPart/100.0);
 
-    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),"Anchor %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, "CS", Loc_f64Distance);
-    UART_SendMessage (gArr_DebugMsg);
+    if(Global_u8CurrentAnchor <= CAN_ANCHOR_MAX){
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),"Anchor %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, "CS", Loc_f64Distance);
+        UART_SendMessage (gArr_DebugMsg);
+    }
 
     /* (Optional) If you also want to log the DQI:
     snprintf(

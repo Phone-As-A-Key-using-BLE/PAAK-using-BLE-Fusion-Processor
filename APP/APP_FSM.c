@@ -42,6 +42,7 @@ uint8_t Global_u8SendTDM = 0;
 uint8_t Global_u8SendHandover= 0;
 uint8_t Global_u8CurrentDeviceId=0;
 
+extern CAN_tstrDistance s_distanceData;  
 extern uint8_t isBondingDataReceived;
 RSSIData_t targetData;
 extern RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1];
@@ -206,7 +207,9 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                     /* Log the parsed data */
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor);
                 UART_SendMessage(gArr_DebugMsg);
-
+                double Loc_f64Distance = s_distanceData.distanceIntegerPart + (s_distanceData.distanceDecimalPart/100.0);
+                snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),"Anchor %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, "CS", Loc_f64Distance);
+                UART_SendMessage (gArr_DebugMsg);
                 Global_u8PERetryCount = 0;
                 //CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor, Loc_u8DeviceId);
                 // Move to the next available anchor
@@ -251,6 +254,12 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Handover failed try again...\n");
                 UART_SendMessage(gArr_DebugMsg);
             break;
+            case EVENT_PRIMARY_WAKEUP_RECEIVED:
+            case EVENT_SECONDARY_WAKEUP_RECEIVED:
+                Global_u8CurrentDeviceId = Loc_u8DeviceId;
+                Global_u8SendPE = 1;
+            break;
+
         }
 
         if(Copy_structEvent == EVENT_RECEIVE_DISTANCE || Copy_structEvent == EVENT_HANDOVER_FAILED ){
@@ -269,15 +278,16 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 for (i = CAN_PRIMARY_ANCHOR; i <= CAN_ANCHOR_MAX; i++)
                     Global_PEDone[i]=0;
                 // Initialize PE process
-                // Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
+                //Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
                 Global_u8SuccessPE = 0;
                 Global_u8FirstTime = 1;
                 Global_u8PERetryCount = 0;
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
-                Global_u8SendHandover=1;
 
                 UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
                 currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
+
+                Global_u8SendHandover=1;
                 //APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 break;
             }
@@ -322,6 +332,11 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         else if(Copy_structEvent == EVENT_HANDOVER_FAILED){
             Global_u8SendHandover=1;
         }
+        else if(Copy_structEvent == EVENT_PRIMARY_WAKEUP_RECEIVED || Copy_structEvent == EVENT_SECONDARY_WAKEUP_RECEIVED){
+                 Global_u8CurrentAnchor = CAN_ANCHOR_1;
+                Global_u8CurrentDeviceId = Loc_u8DeviceId;
+                Global_u8SendPE = 1;
+        }
         break;
 
     // **FUSION ALGORITHM STATE**: Execute sensor fusion
@@ -338,23 +353,23 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
     // testObj[1] = (object_list){1.5,2};
     // testObj[2] = (object_list){0,3};
         // For estimate_final array:
-        estimate_final[0] = 0;
-        estimate_final[1] = 0;
-        measureA = Master_trilaterate_position(testObj);
+        // estimate_final[0] = 0;
+        // estimate_final[1] = 0;
+        // measureA = Master_trilaterate_position(testObj);
 
         // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", measureA.x,measureA.y);
         // UART_SendMessage(gArr_DebugMsg);
 
         //Particle filter
-        if (firstTimeFlag){
-          firstTimeFlag = 0;
-          Master_initialize_particles(particles,measureA.x,measureA.y,1.00);
-        }
+        // if (firstTimeFlag){
+        //   firstTimeFlag = 0;
+        //   Master_initialize_particles(particles,measureA.x,measureA.y,1.00);
+        // }
 
-        Master_prediction(particles);
-        Master_update_particles(particles,measureA);
-        Master_resample(particles);
-        Master_estimate(particles,estimate_final);
+        // Master_prediction(particles);
+        // Master_update_particles(particles,measureA);
+        // Master_resample(particles);
+        // Master_estimate(particles,estimate_final);
 
         //sprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Location from Particle Filter: (x = %.2f , y = %.2f)\n", estimate_final[0],estimate_final[1]);
         //UART_SendMessage(gArr_DebugMsg);
