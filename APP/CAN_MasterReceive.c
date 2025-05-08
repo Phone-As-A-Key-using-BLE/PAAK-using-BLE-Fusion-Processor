@@ -278,6 +278,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
         }
+        isResetNeeded = 0;
             break;
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
          if(isResetNeeded != CAN_ANCHOR_2){
@@ -287,6 +288,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
          }
+         isResetNeeded = 0;
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
@@ -297,6 +299,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
          }
+        isResetNeeded = 0;
             break;
 
         /* RSSI messages -------------------------------------------------- */
