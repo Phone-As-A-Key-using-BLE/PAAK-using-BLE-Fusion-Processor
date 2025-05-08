@@ -50,6 +50,8 @@ extern RSSIData_t gRSSIData[CAN_ANCHOR_MAX + 1];
 Particle particles[NUM_PARTICLES];
 uint8_t volatile firstTimeFlag = 1;
 uint8_t Global_u8ResetAndPE = 0;
+
+uint8_t isResetNeeded = 0;
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 {
     uint8_t Loc_u8DeviceId = 0;
@@ -208,9 +210,6 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                     /* Log the parsed data */
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[SUCCESS] Distance received from anchor %d (Passive Entry assumed success)...\n", Global_u8CurrentAnchor);
                 UART_SendMessage(gArr_DebugMsg);
-                double Loc_f64Distance = s_distanceData.distanceIntegerPart + (s_distanceData.distanceDecimalPart/100.0);
-                snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),"Anchor %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, "CS", Loc_f64Distance);
-                UART_SendMessage (gArr_DebugMsg);
                 Global_u8PERetryCount = 0;
                 //CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor, Loc_u8DeviceId);
                 // Move to the next available anchor
@@ -253,6 +252,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending trigger distance measurement command to anchor %d...\n", Global_u8CurrentAnchor);
                 UART_SendMessage(gArr_DebugMsg);
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
+                isResetNeeded = Global_u8CurrentAnchor - 1;
+                CAN_voidSendCommand(CAN_COMMAND_RESET, isResetNeeded, 0);
                 Global_u8SendTDM = 1;
             break;
             case EVENT_HANDOVER_FAILED:
@@ -263,6 +264,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             break;
             case EVENT_PRIMARY_WAKEUP_RECEIVED:
             case EVENT_SECONDARY_WAKEUP_RECEIVED:
+                CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor-1, Loc_u8DeviceId);
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
                 Global_u8SendPE = 1;
             break;
@@ -293,7 +295,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
                 UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
                 currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-
+                TimerDriver_Start(3000,HandoverTimeoutHandler);
                 Global_u8SendHandover=1;
                 //APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 break;
@@ -318,9 +320,11 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
     // **VEHICLE LEVEL DECISION MAKING**: Evaluate final position of the device
     case STATE_VEHICLE_LEVEL_DECISION_MAKING:
+        TimerDriver_Stop();
         UART_SendMessage("\n[INFO] Executing vehicle-level decision-making process...\n");
-        if (Copy_structEvent == EVENT_HANDOVER_SUCCESS)
+        if (Copy_structEvent == EVENT_HANDOVER_SUCCESS || Copy_structEvent == EVENT_RECEIVE_DISTANCE)
         {
+            CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_ANCHOR_MAX, 0);
             Global_u8CurrentAnchor = CAN_ANCHOR_1;
             uint8_t Loc_u8Distance = CAN_structGetDistanceData().distanceIntegerPart;
             if (Loc_u8Distance <= APP_DISTANCE_TRIGGER_THRESHOLD)

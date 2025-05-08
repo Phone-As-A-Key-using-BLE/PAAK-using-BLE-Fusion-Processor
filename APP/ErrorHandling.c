@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include "UART/uart.h"
@@ -11,6 +12,8 @@
 #include "APP/ErrorHandling.h"
 extern uint8_t Global_u8CurrentDeviceId;
 extern uint8_t currentState;
+extern uint8_t Global_u8CurrentAnchor;
 void HandoverTimeoutHandler(){
-    CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_RESET_ALL, 0);
+    CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, CAN_ANCHOR_MAX, Global_u8CurrentDeviceId);
+    CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_ANCHOR_1, Global_u8CurrentDeviceId);
 }

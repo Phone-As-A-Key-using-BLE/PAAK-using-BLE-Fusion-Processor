@@ -19,7 +19,7 @@
 #endif
 extern uint8_t Global_u8CurrentAnchor; // Temp Solution
 extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
-
+extern uint8_t isResetNeeded;
 
 /* ---------------------------------------------------------------------------
  * Data structures mirroring NXP-based variables
@@ -261,6 +261,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         /* Wake-up notification messages ---------------------------------- */
         case CAN_ID_WAKEUP_NOTIFICATION_A1:
+        if(isResetNeeded != CAN_ANCHOR_1){
             if(currentState == STATE_IDLE){
                 currentState = STATE_PRIMARY_TDM;
                 Global_u8CurrentDeviceId = 0;
@@ -276,22 +277,26 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
                 break;
             }
             APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+        }
             break;
-
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
+         if(isResetNeeded != CAN_ANCHOR_2){
             if(Global_u8ResetAndPE == 2){
                 Global_u8ResetAndPE--;
                 break;
             }
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+         }
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
+         if(isResetNeeded != CAN_ANCHOR_3){
             if(Global_u8ResetAndPE == 2){
                 Global_u8ResetAndPE--;
                 break;
             }
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+         }
             break;
 
         /* RSSI messages -------------------------------------------------- */
@@ -372,10 +377,8 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
     /* Convert DQI */
     uint16_t dqiRaw = (uint16_t)rxData[6] | ((uint16_t)rxData[7] << 8);
     s_distanceData.dqiPercentage = (float)dqiRaw * 0.01f;
-
-    double Loc_f64Distance = s_distanceData.distanceIntegerPart + (s_distanceData.distanceDecimalPart/100.0);
-
-    if(Global_u8CurrentAnchor <= CAN_ANCHOR_MAX){
+    if(currentState == STATE_SECONDARY_PE){
+        double Loc_f64Distance = s_distanceData.distanceIntegerPart + (s_distanceData.distanceDecimalPart/100.0);
         snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),"Anchor %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, "CS", Loc_f64Distance);
         UART_SendMessage (gArr_DebugMsg);
     }

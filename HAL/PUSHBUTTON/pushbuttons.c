@@ -6,10 +6,11 @@
 
 #include "pushbuttons.h"
 #include "APP/APP_FSM.h"
-
+#include <stdint.h>
 
 volatile bool buttonPressed = false;  // Flag to indicate if button is pressed
 extern APP_tenuStates currentState;
+extern uint8_t isBondingDataReceived;
 /***********************************************
  * Function Name: PushButtons_Init
  * Inputs: N/A
@@ -49,6 +50,7 @@ void PushButtonHandler(void) {
     GPIOIntClear(GPIO_PORTF_BASE, BUTTON_SW1);
 
     LED_ON(LED_GREEN);
+    isBondingDataReceived=1;
     currentState = STATE_IDLE;
     
     APP_voidFSMHandler(EVENT_OWNER_PAIRING_BUTTON_PRESSED);
