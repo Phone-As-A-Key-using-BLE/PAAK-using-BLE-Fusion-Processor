@@ -19,6 +19,7 @@ extern uint8_t Global_u8isWaitingForTDM[CAN_ANCHOR_MAX+1];
 extern uint8_t Global_u8HandoverFailCount[CAN_ANCHOR_MAX + 1];
 extern char gArr_DebugMsg[1024];
 void HandoverTimeoutHandler(){
+    TimerDriver_Stop();
     Global_u8HandoverFailCount[Global_u8CurrentAnchor]=0;
     Global_u8isAnchorConnected[Global_u8CurrentAnchor] = 0;
     Global_u8isAnchorConnected[Global_u8HandoverTo] = 1;
@@ -26,11 +27,13 @@ void HandoverTimeoutHandler(){
     snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
             "\n[INFO] Handover Timeout: start PE on Anchor %d\n", Global_u8CurrentAnchor);
     UART_SendMessage(gArr_DebugMsg);
-    CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
+    CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
+
 
 }
 
 void TDMTimeoutHandler(){
+    TimerDriver_Stop();
     Global_u8isWaitingForTDM[Global_u8CurrentAnchor]=0;
     Global_u8isAnchorConnected[Global_u8CurrentAnchor] = 1;
      snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),

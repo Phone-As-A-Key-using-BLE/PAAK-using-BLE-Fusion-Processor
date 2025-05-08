@@ -208,12 +208,13 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 Global_PEDone[i]=0;
             if(Global_u8isAnchorConnected[CAN_PRIMARY_ANCHOR] == 1){
                 Global_u8isWaitingForTDM[CAN_PRIMARY_ANCHOR] = 1;
-                Global_u8ResetAndPE = 2;
+                //Global_u8ResetAndPE = 2;
                 TimerDriver_Start(1000, TDMTimeoutHandler);
                 CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Loc_u8DeviceId);
             }
-            else
+            else{
                 CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Loc_u8DeviceId);
+            }
             break;
         }
 
@@ -438,7 +439,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         //Add fusion Algo
         if(Global_u8isAnchorConnected[Global_u8CurrentAnchor] == 1){
                 TimerDriver_Start(1000, TDMTimeoutHandler);
-                Global_u8ResetAndPE = 2;
+                //Global_u8ResetAndPE = 2;
                 Global_u8SendTDM=1;
         }
         else{
