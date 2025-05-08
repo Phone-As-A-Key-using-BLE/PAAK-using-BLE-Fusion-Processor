@@ -264,7 +264,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             break;
             case EVENT_PRIMARY_WAKEUP_RECEIVED:
             case EVENT_SECONDARY_WAKEUP_RECEIVED:
-                CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor-1, Loc_u8DeviceId);
+                //CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor-1, Loc_u8DeviceId);
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
                 Global_u8SendPE = 1;
             break;
@@ -277,7 +277,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
                 snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Sending handover command from anchor %d to anchor %d...\n", Global_u8CurrentAnchor-1 , Global_u8CurrentAnchor);
                 UART_SendMessage(gArr_DebugMsg);
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
-                //TimerDriver_Start(3000, HandoverTimeoutHandler);
+                TimerDriver_Start(1500, HandoverTimeoutSecondaryHandler);
                 Global_u8SendHandover = 1;
                 break;
             }
@@ -295,8 +295,10 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
 
                 UART_SendMessage("\n[INFO] Minimum distance readings met. Proceeding to vehicle-level decision making...\n");
                 currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-                TimerDriver_Start(3000,HandoverTimeoutHandler);
-                Global_u8SendHandover=1;
+                CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_ANCHOR_1, 0);
+
+                // TimerDriver_Start(3000,HandoverTimeoutHandler);
+                //Global_u8SendHandover=1;
                 //APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
                 break;
             }
@@ -324,7 +326,7 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         UART_SendMessage("\n[INFO] Executing vehicle-level decision-making process...\n");
         if (Copy_structEvent == EVENT_HANDOVER_SUCCESS || Copy_structEvent == EVENT_RECEIVE_DISTANCE)
         {
-            CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_ANCHOR_MAX, 0);
+            //CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_ANCHOR_MAX, 0);
             Global_u8CurrentAnchor = CAN_ANCHOR_1;
             uint8_t Loc_u8Distance = CAN_structGetDistanceData().distanceIntegerPart;
             if (Loc_u8Distance <= APP_DISTANCE_TRIGGER_THRESHOLD)
@@ -350,9 +352,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
             Global_u8SendHandover=1;
         }
         else if(Copy_structEvent == EVENT_PRIMARY_WAKEUP_RECEIVED || Copy_structEvent == EVENT_SECONDARY_WAKEUP_RECEIVED){
-                 Global_u8CurrentAnchor = CAN_ANCHOR_1;
                 Global_u8CurrentDeviceId = Loc_u8DeviceId;
-                Global_u8SendPE = 1;
+                Global_u8SendHandover = 1;
         }
         break;
 
@@ -394,6 +395,8 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent)
         // UART_SendMessage(buffer);
         UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
         currentState = STATE_PRIMARY_TDM;
+        CAN_voidSendCommand(CAN_COMMAND_RESET, 2, 0);
+        CAN_voidSendCommand(CAN_COMMAND_RESET, 3, 0);
         //Add fusion Algo
         Global_u8SendTDM=1;
         // CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Loc_u8DeviceId);
