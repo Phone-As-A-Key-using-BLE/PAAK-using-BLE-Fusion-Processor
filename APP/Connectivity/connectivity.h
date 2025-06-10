@@ -2,74 +2,124 @@
 
 Author: ABDELRAHMAN
 
-*/
+ */
 
 #ifndef CONNECTIVITY_H
 #define CONNECTIVITY_H
-
-
+#include "stdint.h"
 #include "UART/uart.h"
+#include <stdint.h>
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define UART_START_BYTE      0x0F
-#define UART_END_BYTE        0xFF
-#define UART_ACK             0xAA
-#define BUFFER_SIZE          256
 
+// UART Configuration
+#define UART_BAUD_RATE 9600
+#define SERIAL_MONITOR_BAUD_RATE 115200
+#define UART_TIMEOUT 1000  // Timeout for UART communication in milliseconds
+
+
+// UART Start and End Bytes
+#define UART_START_BYTE 0x0F
+#define UART_END_BYTE 0xFF
+#define UART_ACK_BYTE 0xAA
+#define MAX_BUFFER_SIZE 256
 
 /***********************************************
   Enums
  ***********************************************/
+// Vehicle alert enum
+typedef enum VehicleAlert_t {
+  ENGINE_OVERHEAT = 0xF0,
+  DOOR_UNLOCKED,
+  DOOR_LOCKED,
+  TIRE_PRESSURE_LOW
+} VehicleAlert_t;
 
+// Message Types
 typedef enum
 {
-    VEHICLE_SEND_CERTIFICATE      = 0x11, // Vehicle sends its certificate
-    VEHICLE_REQUEST_CERTIFICATE   = 0x12, // Vehicle requests a certificate
-    VEHICLE_RECEIVE_CERTIFICATE   = 0x13, // Vehicle receives a certificate
+    MSG_TYPE_VEHICLE_STATE = 0x01,  // Vehicle state message
+    MSG_TYPE_ALERT,          // Alert message
+    MSG_TYPE_PK_VEHICLE_CERTIFICATE,   // Certificates message
+    MSG_TYPE_REGISTRATION,   // Registration message
+    MSG_TYPE_COMMAND         // Command message
+} VehicleMessageType_t;
 
-    VEHICLE_SEND_STATUS           = 0x22, // Vehicle sends its current status
-    VEHICLE_REQUEST_STATUS        = 0x23, // Vehicle requests status from another system
-    VEHICLE_RECEIVE_STATUS        = 0x24, // Vehicle receives a status update
+// Command Identifiers
+typedef enum
+{
+    CMD_START_ENGINE_BYTE = 0x10,
+    CMD_STOP_ENGINE_BYTE,
 
-    VEHICLE_SEND_COMMAND          = 0x31, // Vehicle sends a control command
-    VEHICLE_RECEIVE_COMMAND       = 0x32, // Vehicle receives a control command
+    CMD_ENABLE_AC_BYTE,
+    CMD_DISABLE_AC_BYTE,
 
-    VEHICLE_SEND_DATA             = 0x41, // Vehicle sends general data (e.g., logs, diagnostics)
-    VEHICLE_REQUEST_DATA          = 0x42, // Vehicle requests specific data
-    VEHICLE_RECEIVE_DATA          = 0x43, // Vehicle receives general data
+    CMD_LOCK_ALL_DOORS_BYTE ,
+    CMD_UNLOCK_ALL_DOORS_BYTE ,
+    CMD_LOCK_FRONT_LEFT_DOOR_BYTE ,
+    CMD_UNLOCK_FRONT_LEFT_DOOR_BYTE ,
+    CMD_LOCK_FRONT_RIGHT_DOOR_BYTE ,
+    CMD_UNLOCK_FRONT_RIGHT_DOOR_BYTE ,
+    CMD_LOCK_REAR_LEFT_DOOR_BYTE ,
+    CMD_UNLOCK_REAR_LEFT_DOOR_BYTE ,
+    CMD_LOCK_REAR_RIGHT_DOOR_BYTE ,
+    CMD_UNLOCK_REAR_RIGHT_DOOR_BYTE ,
 
-    VEHICLE_INITIATE_COMMUNICATION = 0x51, // Vehicle starts communication
-    VEHICLE_TERMINATE_COMMUNICATION = 0x52 // Vehicle ends communication
+    CMD_LOCK_BONNET_BYTE ,
+    CMD_UNLOCK_BONNET_BYTE ,
+    CMD_LOCK_TRUNK_BYTE ,
+    CMD_UNLOCK_TRUNK_BYTE ,
+
+    CMD_ENABLE_IMMOBILIZER_BYTE ,
+    CMD_DISABLE_IMMOBILIZER_BYTE,
+
+    CMD_REQUEST_VERIFIER ,
+
+    CMD_TERMINATE_USER_BYTE
+
 } VehicleCommand_t;
 
-
 // Vehicle status structure
-typedef struct {
-    uint8_t battery_level;
-    int8_t  temperatrue;
-    uint8_t lock;
-    uint8_t active_users;
-    uint8_t tire_pressure;
-}VehicleStatus_t ;
+typedef struct VehicleStates_t {
+    bool engineState;
+    uint8_t batteryLevel;
+    bool doorsLocked;
+    bool acState;
+    uint8_t tirePSI;
+} VehicleStates_t;
 
 
 typedef struct {
-    uint32_t issueDate;            // Issue date of the certificate
-    uint32_t expirationDate;       // Expiration date of the certificate
-    uint16_t modelYear;            // Year of manufacture
-    uint8_t certificateID;
-    uint8_t vehicleMake[8];          // Vehicle make (e.g., Tesla, BMW)
-    uint8_t vehicleModel[16];         // Vehicle model (e.g., Model S, X5)
-    uint8_t publicKey[16];        // Public key for encryption
-    uint8_t signature[16];        // Digital signature for certificate verification
-} VehicleCertificate_t;
+    uint8_t p[2];
+    uint8_t r[2];
+    uint8_t n[4];
+    uint8_t salt[16];
+    uint8_t w0[32];
+    uint8_t L[64];               // Command type (e.g., send certificate, status, etc.)
+}VehicleVerifiers_t ;
+
+//typedef struct {
+//    uint32_t issueDate;            // Issue date of the certificate
+//    uint32_t expirationDate;       // Expiration date of the certificate
+//    uint16_t modelYear;            // Year of manufacture
+//    uint8_t certificateID;
+//    uint8_t vehicleMake[8];          // Vehicle make (e.g., Tesla, BMW)
+//    uint8_t vehicleModel[16];         // Vehicle model (e.g., Model S, X5)
+//    uint8_t publicKey[16];        // Public key for encryption
+//    uint8_t signature[16];        // Digital signature for certificate verification
+//} VehicleCertificate_t;
+
 
 // UART communication message structure
 typedef struct {
-    VehicleCertificate_t certificate;
+    VehicleMessageType_t msg_type;
     VehicleCommand_t command;               // Command type (e.g., send certificate, status, etc.)
-    VehicleStatus_t status;
+    VehicleStates_t states;
+    VehicleAlert_t alert;
+    uint8_t data[MAX_BUFFER_SIZE];
+    uint16_t data_len;
+    VehicleVerifiers_t verifier;
 }CONNECTIVITY_Message_t ;
 
 /*******************************************************************************
@@ -80,7 +130,8 @@ typedef struct {
   Function Prototypes
  ***********************************************/
 void CONNECTIVITY_SendHandleMessage(uint8_t *buffer, CONNECTIVITY_Message_t *msg);
-void CONNECTIVITY_ReceiveData();
+CONNECTIVITY_Message_t CONNECTIVITY_ReceiveData();
 void CONNECTIVITY_SendData(CONNECTIVITY_Message_t *message);
-
+void CONNECTIVITY_ReceiveHandleMessage(uint8_t *buffer, CONNECTIVITY_Message_t *msg);
+void CONNECTIVITY_callback(CONNECTIVITY_Message_t *msg);
 #endif /* CONNECTIVITY_H */
