@@ -11,12 +11,6 @@
 #include "CAN_App.h"
 #include "sys/cdefs.h"
 
-#if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
-#include "app_conn.h"        // If needed by your application
-#include "digital_key_car_anchor_cs.h"
-#include "shell_digital_key_car_anchor_cs.h"
-#include "shell_print.h"
-#endif
 extern uint8_t Global_u8CurrentAnchor; // Temp Solution
 extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
 extern uint8_t isResetNeeded;
@@ -54,6 +48,7 @@ const char* CAN_statusStr[] = {
 };
 extern uint8_t Global_u8ResetAndPE;
 
+double_t Global_f64Readings[CAN_ANCHOR_MAX+1] = {0};
 
 /* ---------------------------------------------------------------------------
  * Local (static) function prototypes
@@ -124,6 +119,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             isTDM = 1;
             anchorID = 1;
             counter++;
+            parseDistanceData(pRxMsg, rxData);
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
                 counter = 0;
                 APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
@@ -134,6 +130,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             isTDM = 0;
             anchorID = 1;
             counter++;
+            parseDistanceData(pRxMsg, rxData);
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
                 counter = 0;
                 APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
@@ -144,6 +141,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             isTDM = 1;
             anchorID = 2;
             counter++;
+            parseDistanceData(pRxMsg, rxData);
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
                 counter = 0;
                 APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
@@ -154,6 +152,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             isTDM = 0;
             anchorID = 2;
             counter++;
+            parseDistanceData(pRxMsg, rxData);
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
                 counter = 0;
                 APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
@@ -164,6 +163,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             isTDM = 1;
             anchorID = 3;
             counter++;
+            parseDistanceData(pRxMsg, rxData);
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
                 counter = 0;
                 APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
@@ -174,6 +174,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             isTDM = 0;
             anchorID = 3;
             counter++;
+            parseDistanceData(pRxMsg, rxData);
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
                 counter = 0;
                 APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
@@ -261,45 +262,50 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
 
         /* Wake-up notification messages ---------------------------------- */
         case CAN_ID_WAKEUP_NOTIFICATION_A1:
+        if(Global_u8ResetAndPE){
+            Global_u8ResetAndPE = 1;
+            break;
+        }
         if(isResetNeeded != CAN_ANCHOR_1){
+            isResetNeeded = 0;
             if(currentState == STATE_IDLE){
-                currentState = STATE_PRIMARY_TDM;
+                currentState = STATE_PRIMARY_PE;
                 Global_u8CurrentDeviceId = 0;
                 Global_u8SendPE = 1;
                 break;
             }
-            else if(currentState == STATE_SECONDARY_PE){
-                Global_u8SendPE = 1;
-                break;
-            }
-            if(Global_u8ResetAndPE == 2){
-                Global_u8ResetAndPE--;
-                break;
-            }
             APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
         }
-        isResetNeeded = 0;
+         else{
+               isResetNeeded = 0;
+         }
             break;
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
+        if(Global_u8ResetAndPE){
+            Global_u8ResetAndPE = 1;
+            break;
+        }
          if(isResetNeeded != CAN_ANCHOR_2){
-            if(Global_u8ResetAndPE == 2){
-                Global_u8ResetAndPE--;
-                break;
-            }
+            isResetNeeded = 0;
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
          }
-         isResetNeeded = 0;
+         else{
+               isResetNeeded = 0;
+         }
             break;
 
         case CAN_ID_WAKEUP_NOTIFICATION_A3:
+        if(Global_u8ResetAndPE){
+            Global_u8ResetAndPE = 1;
+            break;
+        }
          if(isResetNeeded != CAN_ANCHOR_3){
-            if(Global_u8ResetAndPE == 2){
-                Global_u8ResetAndPE--;
-                break;
-            }
+            isResetNeeded = 0;
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
          }
-        isResetNeeded = 0;
+         else{
+            isResetNeeded = 0;
+         }
             break;
 
         /* RSSI messages -------------------------------------------------- */
@@ -329,17 +335,6 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             // UART_SendMessage(gArr_DebugMsg);
             break;
         }
-    }
-
-    /* If a known anchor ID was set, parse and log distance data. */
-    if (anchorID > 0)
-    {
-        parseDistanceData(pRxMsg, rxData);
-        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
-                 "Received Distance Data from Anchor %d, Type: %s\r\n",
-                 anchorID, isTDM ? "TDM" : "PE");
-        UART_SendMessage (gArr_DebugMsg);
-        anchorID=0;
     }
 }
 
@@ -380,8 +375,9 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
     /* Convert DQI */
     uint16_t dqiRaw = (uint16_t)rxData[6] | ((uint16_t)rxData[7] << 8);
     s_distanceData.dqiPercentage = (float)dqiRaw * 0.01f;
-    if(currentState == STATE_SECONDARY_PE){
-        double Loc_f64Distance = s_distanceData.distanceIntegerPart + (s_distanceData.distanceDecimalPart/100.0);
+    double Loc_f64Distance = s_distanceData.distanceIntegerPart + (s_distanceData.distanceDecimalPart/100.0);
+    Global_f64Readings[Global_u8CurrentAnchor] = Loc_f64Distance;
+    if(currentState == STATE_SECONDARY_PE_PROCESSING){
         snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),"Anchor %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, "CS", Loc_f64Distance);
         UART_SendMessage (gArr_DebugMsg);
     }
@@ -497,8 +493,10 @@ static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
     // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "Anchor %d\n", 
     //          gRSSIData[Global_u8CurrentAnchor].anchorId);
     // UART_SendMessage(gArr_DebugMsg);
-    if(currentState == STATE_SECONDARY_PE){
-    sprintf(gArr_DebugMsg,"Anchor %d Distance %s: %.2f meter\r\n", gRSSIData[Global_u8CurrentAnchor].anchorId, "RSSI", (gRSSIData[Global_u8CurrentAnchor].distance)/100.0);
+    double Loc_f64Distance = (gRSSIData[Global_u8CurrentAnchor].distance)/100.0;
+    Global_f64Readings[Global_u8CurrentAnchor] = Loc_f64Distance;
+    if(currentState == STATE_SECONDARY_PE_PROCESSING){
+    sprintf(gArr_DebugMsg,"Anchor %d Distance %s: %.2f meter\r\n", gRSSIData[Global_u8CurrentAnchor].anchorId, "RSSI", Loc_f64Distance);
     /* Log the parsed data */
     // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "[INFO] RSSI Data:\n- Distance: %d -\r\n", 
     //             gRSSIData[Global_u8CurrentAnchor].distance);

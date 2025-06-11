@@ -8,6 +8,7 @@
  ***********************************************/
 
 #include "os.h"
+#include "driverlib/interrupt.h"
 
 
 volatile SystemState currState = STATE_NORMAL;
@@ -415,7 +416,7 @@ void OS_voidCheckTXOK(void)
  *********************************/
 void OS_Init(void) {
     //systemTime = 0;
-
+    IntMasterDisable();
     // Initialize system clock
     SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
     // Initialize SysTick
@@ -424,14 +425,13 @@ void OS_Init(void) {
     GPIO_InitPort(GPIO_PORTF_BASE);
     LED_Init();
     PushButtons_Init();
-    CAN_Init();
-    CAN_ReceiveInit();
-    IntMasterEnable();
-    UART_Init();
-    ADC_Init();
     NVM_Init();
     TimerDriver_Init();
     DeviceStateManager_Init();
+    CAN_Init();
+    CAN_ReceiveInit();
+    UART_Init();
+    IntMasterEnable();
 
 
     //CAN_ConfigureReceiveObjects();

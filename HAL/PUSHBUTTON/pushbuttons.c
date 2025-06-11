@@ -50,7 +50,7 @@ void PushButtonHandler(void) {
     GPIOIntClear(GPIO_PORTF_BASE, BUTTON_SW1);
 
     LED_ON(LED_GREEN);
-    isBondingDataReceived=1;
+    isBondingDataReceived=0;
     currentState = STATE_IDLE;
     
     APP_voidFSMHandler(EVENT_OWNER_PAIRING_BUTTON_PRESSED);

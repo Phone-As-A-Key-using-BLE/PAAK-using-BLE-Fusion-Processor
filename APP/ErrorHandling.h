@@ -3,4 +3,5 @@
 
 void HandoverTimeoutHandler();
 void HandoverTimeoutSecondaryHandler();
+void DisconnectTimeOutHandler();
 #endif // ERROR_HANDLING_H

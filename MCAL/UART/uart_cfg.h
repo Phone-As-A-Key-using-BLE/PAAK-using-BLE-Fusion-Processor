@@ -35,4 +35,6 @@
 // Options for base address: UART0_BASE, UART1_BASE.
 #define UART_BASE_ADDRESS        UART0_BASE
 
+#define UART_CONNECTIVITY_BASE_ADDRESS UART1_BASE
+
 #endif /* UART_CONFIG_H */

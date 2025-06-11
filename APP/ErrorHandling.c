@@ -14,6 +14,7 @@ extern uint8_t Global_u8CurrentDeviceId;
 extern uint8_t currentState;
 extern uint8_t Global_u8CurrentAnchor;
 extern uint8_t isPeRunning;
+extern uint8_t Global_u8ResetAndPE;
 void HandoverTimeoutHandler(){
     TimerDriver_Stop();
     UART_SendMessage("\nTimeout: TDM\n");
@@ -22,5 +23,12 @@ void HandoverTimeoutHandler(){
 void HandoverTimeoutSecondaryHandler(){
     TimerDriver_Stop();
     UART_SendMessage("\nTimeout: Handover\n");
+    isPeRunning = 1;
     CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor-1, Global_u8CurrentDeviceId);
+}
+
+void DisconnectTimeOutHandler(){
+    TimerDriver_Stop();
+    UART_SendMessage("\nTimeout: Disconnect\n");
+    Global_u8ResetAndPE = 2;
 }

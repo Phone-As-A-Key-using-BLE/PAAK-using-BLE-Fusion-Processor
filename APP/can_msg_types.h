@@ -96,7 +96,10 @@ typedef enum{
     APP_CS
 }APP_tenuRangingType;
 
-
+typedef enum{
+    VEHICLE_PK_CERTIFICATE,
+    DK_CREATION_DATA
+}CAN_tenuCertificateType;
 
 #define CAN_RESET_ALL   0
 

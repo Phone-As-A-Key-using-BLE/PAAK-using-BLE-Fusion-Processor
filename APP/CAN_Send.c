@@ -10,8 +10,10 @@
 #include "DeviceRangingTypeManager.h"
 #include "CAN_App.h"
 #include "APP_FSM.h"
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include "APP/Connectivity/connectivity.h"
 /* Include are customized either to anchor which is NXP KW45
    or Master which is tiva C */
 #if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
@@ -209,5 +211,52 @@ void CAN_voidSendRangingType(APP_tenuRangingType* Copy_enuRangingType){
 }
 
 
+void CAN_voidSendCertificate(uint8_t Copy_u8Device,uint8_t Copy_u8CertificateType, uint16_t Copy_u16Size, uint8_t * Add_u8Certificate){        
+    uint8_t loc_u8CanData[8];
+    uint16_t currentIndex = 0;
+
+    // ---------- Header Frame ----------
+    loc_u8CanData[0] = Copy_u8Device;
+    loc_u8CanData[1] = Copy_u8CertificateType;
+    loc_u8CanData[2] = (uint8_t)(Copy_u16Size & 0xFF);       // Data Length LSB
+    loc_u8CanData[3] = (uint8_t)((Copy_u16Size >> 8) & 0xFF); // Data Length MSB
+    loc_u8CanData[4] = 0x00;
+    loc_u8CanData[5] = 0x00;
+    loc_u8CanData[6] = 0x00;
+    loc_u8CanData[7] = 0x00;
+
+    CAN_voidSendMsg(CAN_ID_CERTIFICATE, loc_u8CanData);
+    uint8_t i = 0;
+    // ---------- Data Frames (pure data) ----------
+    while (currentIndex < Copy_u16Size) {
+        for (i = 0; i < 8; i++) {
+            if (currentIndex < Copy_u16Size) {
+                loc_u8CanData[i] = Add_u8Certificate[currentIndex++];
+            } else {
+                loc_u8CanData[i] = 0x00; // Padding
+            }
+        }
+        CAN_voidSendMsg(CAN_ID_CERTIFICATE, loc_u8CanData);
+    }
+    UART_SendMessage("\n============================\n");
+    UART_SendMessage("CAN Certificate\n");
+    UART_SendMessage("==============================\n");
+}
+
+void CAN_voidSendVerifiers(uint8_t Copy_u8Device, VehicleVerifiers_t* Add_structVerifiers) {
+    uint8_t* rawData = (uint8_t*)Add_structVerifiers;
+    uint8_t frameData[8];
+    uint8_t i;
+    for (i = 0; i < 15; i++) {
+        frameData[0] = i; // frame index
+        memcpy(&frameData[1], &rawData[i * 7], 7);
+        CAN_voidSendMsg(CAN_ID_VERIFIERS, frameData);
+    }
+
+    // Final frame (frame 15): remaining 6 bytes
+    frameData[0] = 15;
+    memcpy(&frameData[1], &rawData[15 * 7], 6); // last 6 bytes
+    CAN_voidSendMsg(CAN_ID_VERIFIERS, frameData);
+}
 
 

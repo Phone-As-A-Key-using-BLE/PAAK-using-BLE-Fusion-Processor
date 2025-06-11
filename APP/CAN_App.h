@@ -13,7 +13,7 @@
 #define CAN_ANCHOR_1            1
 #define CAN_ANCHOR_2            2
 #define CAN_ANCHOR_3            3
-#define CAN_ANCHOR_MAX          3
+#define CAN_ANCHOR_MAX          2
 
 
 /* Configuration */
@@ -73,6 +73,9 @@
     #define CAN_ID_RSSI_A3                  (CAN_BASE_ID + 17)
     #define CAN_ID_RANGING_TYPE             (CAN_BASE_ID + 18)
     #define CAN_ID_RANGING_TYPE_A1          (CAN_BASE_ID + 19)
+    #define CAN_ID_CERTIFICATE              (CAN_BASE_ID + 20)
+    #define CAN_ID_VERIFIERS                (CAN_BASE_ID + 21)
+
 
 #else
     #error "Invalid CAN_ANCHOR_ID"

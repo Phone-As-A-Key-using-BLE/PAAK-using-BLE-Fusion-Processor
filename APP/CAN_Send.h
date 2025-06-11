@@ -10,6 +10,7 @@
 #ifndef CAN_SEND_H_
 #define CAN_SEND_H_
 
+#include "APP/Connectivity/connectivity.h"
 /* Helper Macros */
 
 /** 
@@ -47,6 +48,8 @@
  */
 void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Data);
 
+void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8HandoverTo,uint8_t Copy_u8deviceId);
+
 /**
  * @brief Sends ranging type of devices over CAN bus.
  * 
@@ -54,6 +57,7 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
  */
 void CAN_voidSendRangingType(APP_tenuRangingType* Add_enuRangingType);
 
-void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8HandoverTo,uint8_t Copy_u8deviceId);
+void CAN_voidSendVerifiers(uint8_t Copy_u8Device, VehicleVerifiers_t* Add_structVerifiers);
 
+void CAN_voidSendCertificate(uint8_t Copy_u8Device,uint8_t Copy_u8CertificateType, uint16_t Copy_u16Size, uint8_t * Add_u8Certificate);
 #endif /* CAN_SEND_H_ */

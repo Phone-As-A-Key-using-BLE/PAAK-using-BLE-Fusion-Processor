@@ -7,7 +7,8 @@
 
 #include "uart.h"
 #include "String.h"
-
+#include "UART/uart_cfg.h"
+extern void UART1_Handler(void);
 /***********************************************
  * Function Name: UART_INIT
  * Inputs: N/A
@@ -19,46 +20,52 @@
  ***********************************************/
 void UART_Init(void)
 {
-    // Set the system clock to 50 MHz
+    // 1. Set the system clock to 50 MHz (if not already done globally)
     SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
 
-    // Enable the GPIO peripheral for the selected UART
-    if (UART_BASE_ADDRESS == UART0_BASE) {
-        SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);  // For UART0 (PA0, PA1)
-        GPIOPinConfigure(GPIO_PA0_U0RX);
-        GPIOPinConfigure(GPIO_PA1_U0TX);
-        GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    }
-    else if (UART_BASE_ADDRESS == UART1_BASE) {
-        SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);  // For UART1 (PB0, PB1)
-        GPIOPinConfigure(GPIO_PB0_U1RX);
-        GPIOPinConfigure(GPIO_PB1_U1TX);
-        GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    }
-    else{}
+    // 2. Enable GPIO ports used by UART0 and UART1
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);  // UART0: PA0, PA1
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);  // UART1: PB0, PB1
 
-    // Add additional UART ports as needed
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOA)) {}
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOB)) {}
 
-    // Enable the UART peripheral
-    if (UART_BASE_ADDRESS == UART0_BASE) {
-        SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-    }
-    else if (UART_BASE_ADDRESS == UART1_BASE) {
-        SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
-    }
-    else{}
+    // 3. Configure GPIO pins for UART0
+    GPIOPinConfigure(GPIO_PA0_U0RX);
+    GPIOPinConfigure(GPIO_PA1_U0TX);
+    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
-    // Add additional UART ports as needed
+    // 4. Configure GPIO pins for UART1
+    GPIOPinConfigure(GPIO_PB0_U1RX);
+    GPIOPinConfigure(GPIO_PB1_U1TX);
+    GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
-    // Configure the UART with the predefined baud rate and configuration from UART_Config.h
+    // 5. Enable UART modules
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
+
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_UART0)) {}
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_UART1)) {}
+
+    // 6. Configure UART modules (assumes UART_BASE_ADDRESS and UART_CONNECTIVITY_BASE_ADDRESS are defined)
     UARTConfigSetExpClk(UART_BASE_ADDRESS, SysCtlClockGet(), UART_DEFAULT_BAUD_RATE, UART_DEFAULT_CONFIG);
+    UARTConfigSetExpClk(UART_CONNECTIVITY_BASE_ADDRESS, SysCtlClockGet(), UART_DEFAULT_BAUD_RATE, UART_DEFAULT_CONFIG);
 
-    // Enable the UART
+    // 7. Clear any pending UART interrupts before enabling
+    UARTIntClear(UART_CONNECTIVITY_BASE_ADDRESS, UARTIntStatus(UART_CONNECTIVITY_BASE_ADDRESS, true));
+
+    // 8. Register UART1 ISR (optional, if using dynamic vector table)
+    UARTIntRegister(UART_CONNECTIVITY_BASE_ADDRESS, UART1_Handler);  // only if vector table is dynamic
+
+    // 9. Enable UART1 interrupts
+    UARTIntEnable(UART_CONNECTIVITY_BASE_ADDRESS, UART_INT_RX | UART_INT_RT);
+    IntEnable(INT_UART1);
+
+    // 10. Enable UART modules
     UARTEnable(UART_BASE_ADDRESS);
-
-    // Delay to allow UART initialization
-    SysCtlDelay(SysCtlClockGet() / (uint32_t)3);
+    UARTEnable(UART_CONNECTIVITY_BASE_ADDRESS);
 }
+
 
 /***********************************************
  * Function Name: UARTSendMessage
@@ -78,6 +85,15 @@ void UART_SendMessage(const char *array)
     }
 }
 
+void UART_ConnectivitySendMessage(const char *array)
+{
+    while (*array)
+    {
+        UARTCharPut(UART_CONNECTIVITY_BASE_ADDRESS, *array); // Transmit each character
+        array++;
+    }
+}
+
 /***********************************************
  * Function Name: UARTRecieveMessage
  * Inputs: N/A
@@ -89,10 +105,10 @@ void UART_SendMessage(const char *array)
  ***********************************************/
 int32_t UART_RecieveMessage(void) {
     /* Wait for data to be available*/
-    while (!UARTCharsAvail(UART_BASE_ADDRESS)){}
+    while (!UARTCharsAvail(UART_CONNECTIVITY_BASE_ADDRESS)){}
 
     /* Read and return the received character*/
-    return UARTCharGet(UART_BASE_ADDRESS);
+    return UARTCharGet(UART_CONNECTIVITY_BASE_ADDRESS);
 }
 
 void UART_SendNumber(uint32_t number) {
@@ -124,19 +140,6 @@ void UART_SendNumber(uint32_t number) {
     UART_SendMessage("\r\n");     // Print�the�unit
 }
 
-void UART_ProcessCommand(const char *command) {
-    if (strcmp(command, "CLEAR_DTC") == 0) {
-        // Example: Clear diagnostic trouble codes
-        UART_SendMessage("Clearing DTCs...\n");
-        // Call a function from NVM driver to clear DTCs
-    } else if (strcmp(command, "QUERY_ADC") == 0) {
-        // Example: Query ADC values
-        UART_SendMessage("Querying ADC values...\n");
-        // Call a function from ADC driver to read ADC
-    } else {
-        UART_SendMessage("Invalid command.\n");
-    }
-}
 
 void ftoa(float number, char *buffer, int decimalPlaces) {
     int integerPart = (int)number;  // Extract integer part
@@ -198,46 +201,12 @@ void UART_SendNumberConnectivity(uint8_t number) {
     }
 
     // Send the string using UART
-    UART_SendMessage(buffer);  // Assuming UART_SendMessage is your function to send strings
+    UART_ConnectivitySendMessage(buffer);  // Assuming UART_SendMessage is your function to send strings
     UART_SendMessage("\r\n");     // Print�the�unit
 }
 void UART_SendHexConnectivity(uint8_t *dataArray, uint8_t stopIndex) {
     uint8_t i = 0;
     for (; i <= stopIndex; i++) {
-        UARTCharPut(UART_BASE_ADDRESS, dataArray[i]); // Send each byte over UART
+        UARTCharPut(UART_CONNECTIVITY_BASE_ADDRESS, dataArray[i]); // Send each byte over UART
     }
-}
-
-
-int my_sprintf(char** buffer, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-
-    // First pass to determine buffer size
-    int len = vsnprintf(NULL, 0, format, args);
-    if (len < 0) {
-        va_end(args);
-        return -1; // Error during formatting
-    }
-
-    // Allocate buffer (add 1 for null terminator)
-    *buffer = (char*)malloc(len + 1);
-    if (*buffer == NULL) {
-        va_end(args);
-        return -1; // Memory allocation failed
-    }
-
-    va_end(args); // Reset args for second pass
-    va_start(args, format);
-
-    // Second pass to actually format the string
-    int written = vsnprintf(*buffer, len + 1, format, args);
-    va_end(args);
-
-    if (written < 0 || written > len) {
-        free(*buffer); // Free allocated memory on error
-        return -1; // Error during formatting or buffer overflow
-    }
-
-    return len;
 }
