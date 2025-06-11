@@ -10,6 +10,7 @@
 
 #include "APP_FSM.h"
 #define MAX_PE_RETRIES 3  // User-defined max retries for PE
+#define MAX_HANDOVER_RETRIES 5
 
 typedef enum {
     STATE_IDLE,
@@ -21,10 +22,10 @@ typedef enum {
     STATE_PRIMARY_PE,
     STATE_PRIMARY_TDM,
     STATE_WAKEUP_DECISION_MAKING,
-    STATE_SECONDARY_PE_INIT,           // Initialize secondary PE process
-    STATE_SECONDARY_PE_PROCESSING,     // Processing PE for current anchor
-    STATE_SECONDARY_PE_HANDOVER,       // Handling handover between anchors
-    STATE_SECONDARY_PE_EVALUATION,     // Evaluate if enough readings collected
+    STATE_DISTANCE_MEASUREMENT_INIT,           // Initialize secondary PE process
+    STATE_DISTANCE_MEASUREMENT_PROCESSING,     // Processing PE for current anchor
+    STATE_DISTANCE_MEASUREMENT_HANDOVER,       // Handling handover between anchors
+    STATE_DISTANCE_MEASUREMENT_EVALUATION,     // Evaluate if enough readings collected
     STATE_VEHICLE_LEVEL_DECISION_MAKING,
     STATE_FUSION_ALGO
 } APP_tenuStates;
@@ -36,9 +37,9 @@ typedef enum {
     EVENT_CERTIFICATE_RECEIVED,
     EVENT_BONDING_DATA_RECEIVED,
     EVENT_PRIMARY_PE_SUCCESSFUL,
-    EVENT_PRIMARY_PE_FAILED,
+    EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR,
     EVENT_SECONDARY_PE_SUCCESSFUL,
-    EVENT_SECONDARY_PE_FAILED,
+    EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR,
     EVENT_DEVICE_IN_RANGE,
     EVENT_RECEIVE_DISTANCE,
     EVENT_DISTANCE_BELOW_THRESHOLD,
@@ -52,10 +53,13 @@ typedef enum {
 
 
 
-#define APP_DISTANCE_TRIGGER_THRESHOLD      1000
+#define APP_DISTANCE_TRIGGER_THRESHOLD      2
 #define APP_MINUMUM_DISTANCE_READINGS       2
 #define APP_CS_NO_OF_MEASURING_DISTANCE     1
 #define APP_MAX_NO_OF_DEVICES               4
+
+#define TIMEOUT_DISCONNECT                  500
+#define TIMEOUT_HANDOVER                    2000
 
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent);
 

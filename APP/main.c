@@ -1,68 +1,24 @@
-///*
-// * Module Name: MASTER ECU1 Application
-// * Author: MOHAMAD WALEED & ABDELRAHMAN
-// * Purpose: Entry point for the Master ECU. Uses OS Layer for task management.
-//*/
-
 #include "CAN_App.h"
-#include "OS/os.h"
 #include "Connectivity/connectivity.h"
 #include "UART/uart.h"
 #include "APP/can_msg_types.h"
 #include "APP/CAN_Send.h"
 #include "APP/APP_FSM.h"
-#include "_atomic.h"
-extern uint8_t Global_u8SendPE;
-extern uint8_t Global_u8SendTDM;
-extern uint8_t Global_u8SendHandover;
-extern uint8_t Global_u8CurrentDeviceId;
-extern uint8_t Global_u8CurrentAnchor;
-extern APP_tenuStates currentState;
+#include "APP_SYS.h"
+
+
 extern uint8_t isBondingDataReceived;
-extern uint8_t Global_u8ResetAndPE;
-
-
-
 
 int main(void)
 {
-    OS_Init();
+    APP_voidSystemInit();
     isBondingDataReceived=1;
     
     CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_RESET_ALL, 0);
 
     while (1)
     {
-        if(Global_u8SendPE){
-            __asm(" CPSID I \n");
-            Global_u8SendPE = 0;
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
-            __asm(" CPSIE I \n");
-        }
-        if(Global_u8SendTDM){
-            __asm(" CPSID I\n");
-            Global_u8SendTDM = 0;
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);      
-            __asm(" CPSIE I \n");
-        }
-        if(Global_u8SendHandover){
-            __asm(" CPSID I \n");
-            Global_u8SendHandover = 0;
-            if(Global_u8CurrentAnchor > CAN_ANCHOR_MAX){
-                CAN_voidSendHandoverCommand(CAN_ANCHOR_MAX, CAN_ANCHOR_1, Global_u8CurrentDeviceId);
-            }
-            else
-                CAN_voidSendHandoverCommand(Global_u8CurrentAnchor - 1, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
-            __asm(" CPSIE I \n");
-        }
-        if(Global_u8ResetAndPE == 2){
-            Global_u8ResetAndPE = 3;
-            CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor, 0);
-        }
-        if(Global_u8ResetAndPE == 1){
-            Global_u8ResetAndPE = 0;
-            CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
-        }
+        APP_voidCommandsHandler();
         __asm(" WFE \n");
     }
 }

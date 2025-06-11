@@ -14,20 +14,10 @@
 #include <string.h>
 #include <stdio.h>
 #include "APP/Connectivity/connectivity.h"
-/* Include are customized either to anchor which is NXP KW45
-   or Master which is tiva C */
-#if (CAN_ANCHOR_ID != CAN_MASTER_NODE)
-#include "app_localization.h"
-#include "flexcan_interrupt_transfer.h"
-#include "gap_types.h"
-#include "app_localization.h"
-#if defined(gAppUseShellInApplication_d) && (gAppUseShellInApplication_d == 1)
-#include "shell_print.h"
-#endif
-#else
+
 #include "can.h"
 #include "can_config.h"
-#endif
+
 #include "can_msg_types.h"
 #include "CAN_Send.h"
 
@@ -182,34 +172,6 @@ void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Hando
     // Send command message before printing the output
     CAN_voidSendMsg(CAN_ID_COMMANDS, loc_u8CanData);
 }
-
-/**
- * @brief Sends ranging type of device over CAN bus.
- * 
- * @param Copy_u8DeviceId Device ID
- * @param Copy_enuRangingType Ranging Type RSSI or CS.
- */
-void CAN_voidSendRangingType(APP_tenuRangingType* Copy_enuRangingType){
-    uint8_t loc_u8CanData[8] = {0}; // Local array for CAN message data
-    uint8_t i=0;
-    for (; i<APP_MAX_NO_OF_DEVICES; i++) {
-        loc_u8CanData[i] = (uint8_t)Copy_enuRangingType[i];
-    }
-
-    // Send wakeup notification message
-    CAN_voidSendMsg(CAN_ID_RANGING_TYPE, loc_u8CanData);
-
-    char* Loc_u8RangingTypeNameForDebug [] ={"Not Determined","RSSI","CS"};
-    UART_SendMessage("\n============================\n");
-    UART_SendMessage("CAN Ranging Type              \n");
-    UART_SendMessage("============================\n");
-    for (i=0;i<1;i++) {
-        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "[INFO] Sending ranging type for device %d which is %s\n" ,i,Loc_u8RangingTypeNameForDebug[Copy_enuRangingType[i]]);
-    }
-    UART_SendMessage(gArr_DebugMsg);
-    UART_SendMessage("============================\n\n");
-}
-
 
 void CAN_voidSendCertificate(uint8_t Copy_u8Device,uint8_t Copy_u8CertificateType, uint16_t Copy_u16Size, uint8_t * Add_u8Certificate){        
     uint8_t loc_u8CanData[8];

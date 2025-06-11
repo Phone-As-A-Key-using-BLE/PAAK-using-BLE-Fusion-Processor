@@ -55,6 +55,7 @@
                                     <listOptionValue value="${PROJECT_LOC}/APP"/>
                                     <listOptionValue value="${CG_TOOL_ROOT}/include"/>
                                     <listOptionValue value="C:\ti\TivaWare_C_Series-2.2.0.295"/>
+                                    <listOptionValue value="${PROJECT_LOC}/HAL"/>
                                 </option>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.DEBUGGING_MODEL.365453311" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.DEBUGGING_MODEL" value="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.DEBUGGING_MODEL.SYMDEBUG__DWARF" valueType="enumerated"/>
                                 <option id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.DIAG_WARNING.1510053030" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.DIAG_WARNING" valueType="stringList">
@@ -106,6 +107,27 @@
                             <option id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.PREINCLUDE.1060122900" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.PREINCLUDE" valueType="includeFiles"/>
                         </tool>
                     </fileInfo>
+                    <folderInfo id="com.ti.ccstudio.buildDefinitions.TMS470.Debug.965811999.HAL/LED" name="LED" resourcePath="HAL/LED">
+                        <toolChain id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.DebugToolchain.1257511850" name="TI Build Tools" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.DebugToolchain" unusedChildren="">
+                            <option id="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS.1183360500.767985773" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS.1183360500"/>
+                            <option id="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION.1010346266.543447433" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION.1010346266"/>
+                            <targetPlatform id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.targetPlatformDebug" name="Platform" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.targetPlatformDebug"/>
+                            <tool id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.946377302" name="Arm Compiler" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145">
+                                <option id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.INCLUDE_PATH.18908084" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.INCLUDE_PATH" valueType="includePath">
+                                    <listOptionValue value="${PROJECT_ROOT}"/>
+                                    <listOptionValue value="${PROJECT_ROOT}\MCAL\CAN"/>
+                                    <listOptionValue value="${LED}"/>
+                                    <listOptionValue value="${PROJECT_LOC}/MCAL"/>
+                                    <listOptionValue value="${PROJECT_LOC}/APP"/>
+                                    <listOptionValue value="${CG_TOOL_ROOT}/include"/>
+                                    <listOptionValue value="C:\ti\TivaWare_C_Series-2.2.0.295"/>
+                                    <listOptionValue value="${PROJECT_LOC}/HAL"/>
+                                </option>
+                            </tool>
+                            <tool id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.linkerDebug.1398932670" name="Arm Linker" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.linkerDebug.516265772"/>
+                            <tool id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.hex.962869147" name="Arm Hex Utility" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.hex.1854467004"/>
+                        </toolChain>
+                    </folderInfo>
                     <fileInfo id="com.ti.ccstudio.buildDefinitions.TMS470.Debug.965811999.1643441391" name="tm4c123gh6pm_startup_ccs.c" rcbsApplicability="disable" resourcePath="tm4c123gh6pm_startup_ccs.c" toolsToInvoke="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145.545310173">
                         <tool id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145.545310173" name="Arm Compiler" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.compilerDebug.2009824145">
                             <option id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.CHECK_MISRA.1676251258" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.CHECK_MISRA" value="" valueType="string"/>

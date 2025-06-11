@@ -57,11 +57,8 @@
 
 #elif (CAN_ANCHOR_ID == CAN_MASTER_NODE)
     #define CAN_ID_DISTANCE_TDM_A1          (CAN_BASE_ID + 3)
-    #define CAN_ID_DISTANCE_PE_A1           (CAN_BASE_ID + 4)
     #define CAN_ID_DISTANCE_TDM_A2          (CAN_BASE_ID + 5)
-    #define CAN_ID_DISTANCE_PE_A2           (CAN_BASE_ID + 6)
     #define CAN_ID_DISTANCE_TDM_A3          (CAN_BASE_ID + 7)
-    #define CAN_ID_DISTANCE_PE_A3           (CAN_BASE_ID + 8)
     #define CAN_ID_STATUS_A1                (CAN_BASE_ID + 9)
     #define CAN_ID_STATUS_A2 	            (CAN_BASE_ID + 10)
     #define CAN_ID_STATUS_A3                (CAN_BASE_ID + 11)
@@ -71,11 +68,8 @@
     #define CAN_ID_RSSI_A1                  (CAN_BASE_ID + 15)
     #define CAN_ID_RSSI_A2                  (CAN_BASE_ID + 16)
     #define CAN_ID_RSSI_A3                  (CAN_BASE_ID + 17)
-    #define CAN_ID_RANGING_TYPE             (CAN_BASE_ID + 18)
-    #define CAN_ID_RANGING_TYPE_A1          (CAN_BASE_ID + 19)
     #define CAN_ID_CERTIFICATE              (CAN_BASE_ID + 20)
     #define CAN_ID_VERIFIERS                (CAN_BASE_ID + 21)
-
 
 #else
     #error "Invalid CAN_ANCHOR_ID"

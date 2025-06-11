@@ -5,6 +5,8 @@
 static uint8_t deviceStates[NUM_DEVICES];
 
 void DeviceStateManager_Init(void) {
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_EEPROM0)){}
     EEPROMInit();
     DeviceStateManager_LoadAll();
 }

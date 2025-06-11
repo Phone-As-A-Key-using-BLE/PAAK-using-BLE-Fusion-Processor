@@ -8,8 +8,6 @@
 #include "measurement.h"
 #include "helper_function.h"
 #include "std_types.h"
-#include"../../MCAL/SYSTICKTIMER/systicktimer.h"
-
 
 #define NUM_PARTICLES  50
  #define BLE_RANGE 5

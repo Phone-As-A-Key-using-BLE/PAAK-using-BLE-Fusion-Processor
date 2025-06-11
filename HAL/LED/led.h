@@ -15,7 +15,6 @@
 #include "inc/hw_memmap.h"
 #include "driverlib/gpio.h"
 #include "driverlib/sysctl.h"
-#include "MCAL/TIMER0/timer0.h"
 
 /***********************************************
  * Definitions and Macros
