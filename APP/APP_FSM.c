@@ -84,18 +84,19 @@ uint8_t volatile firstTimeFlag = 1;
 static inline void FSM_voidResetPEState(void);
 static uint8_t FSM_u8FindNextAnchor(void);
 static void FSM_voidLogAnchorMessage(const char* Copy_pchLevel, const char* Copy_pchMessage, uint8_t Copy_u8Anchor);
-static void FSM_voidHandleDistanceMeasurementInit(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
-static void FSM_voidHandleDistanceMeasurementProcessing(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
-static void FSM_voidHandleDistanceMeasurementHandover(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
-static void FSM_voidHandleDistanceMeasurementEvaluation(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandleIdleState(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleWaitingForBondingData(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleWaitingForPrimaryWakeup(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandlePrimaryPE(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandlePrimaryTDM(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandleWakeupDecisionMaking(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
-static void FSM_voidHandleVehicleLevelDecisionMaking(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleDistanceMeasurementInit(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleDistanceMeasurementProcessing(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleDistanceMeasurementHandover(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleDistanceMeasurementEvaluation(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandleFusionAlgo(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleVehicleLevelDecisionMaking(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleReturningConnectionToPrimaryAnchor(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 
 /*==================== PRIVATE FUNCTION IMPLEMENTATIONS ====================*/
 
@@ -164,168 +165,29 @@ void FSM_voidHandleHandoverTimeout(uint8_t Copy_u8DeviceId) {
 }
 
 /**
- * @brief Handle distance measurement initialization state
- * @param Copy_enuEvent FSM event
- * @param Copy_u8DeviceId Device ID
+ * @brief Handle handover fail scenario
+ * @param Copy_u8DeviceId Device ID that failed
  * @return None
  */
-static void FSM_voidHandleDistanceMeasurementInit(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
-    if (Copy_enuEvent == EVENT_DEVICE_IN_RANGE) {
-        /* Initialize distance measurement process */
-        Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
-        FSM_voidResetPEState();
-        
-        UART_SendMessage("\n[INFO] Initiating distance measurement process, starting with primary anchor\n");
-        
-        /* Trigger distance measurement on primary anchor */
-        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
-        currentState = STATE_DISTANCE_MEASUREMENT_PROCESSING;
-    }
-}
-
-/**
- * @brief Handle distance measurement processing state
- * @param Copy_enuEvent FSM event
- * @param Copy_u8DeviceId Device ID
- * @return None
- */
-static void FSM_voidHandleDistanceMeasurementProcessing(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
-    switch (Copy_enuEvent) {
-        case EVENT_RECEIVE_DISTANCE:
-            TimerDriver_Stop();
-            
-            /* Record successful distance reading */
-            Global_u8NoOfDistances++;
-            Global_DistanceMeasurementDone[Global_u8CurrentAnchor] = 1;
-            Global_f64DistanceReadings[Copy_u8DeviceId][Global_u8CurrentAnchor] = 
-                (double_t)(gRSSIData[Global_u8CurrentAnchor].distance / 100.0);
-            Global_u8PERetryCount = 0;
-            
-            FSM_voidLogAnchorMessage("SUCCESS", "Distance received from", Global_u8CurrentAnchor);
-            
-            /* Move to handover state */
-            currentState = STATE_DISTANCE_MEASUREMENT_HANDOVER;
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
-            break;
-
-        case EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR:
-        case EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR:
-            TimerDriver_Stop();
-            UART_SendMessage("\n[SUCCESS] Device Disconnected.\n");
-            
-            /* Schedule reset and PE restart */
-            Global_u8CurrentDeviceId = Copy_u8DeviceId;
-            UART_SendMessage("\n[INFO] Reset anchor and start PE again...\n");
-            Global_u8ResetAndPE = 2;
-            break;
-
-        case EVENT_HANDOVER_SUCCESS:
-            TimerDriver_Stop();
-            FSM_voidLogAnchorMessage("SUCCESS", "Handover is done. Reset previous anchor and trigger distance measurement on anchor ", Global_u8CurrentAnchor);
-            
-            /* Reset previous anchor and trigger distance measurement */
-            Global_u8CurrentDeviceId = Copy_u8DeviceId;
-            isResetNeeded = Global_u8CurrentAnchor - 1;
-            
-            CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor - 1, 0);
-            Global_u8SendTDM = 1;
-            break;
-
-        case EVENT_HANDOVER_FAILED:
-            TimerDriver_Stop();
-            UART_SendMessage("\n[ERROR] Handover failed try again...\n");
-            
-            /* Retry handover */
-            Global_u8CurrentDeviceId = Copy_u8DeviceId;
-            Global_u8SendHandover = 1;
-            break;
-
-        case EVENT_PRIMARY_WAKEUP_RECEIVED:
-        case EVENT_SECONDARY_WAKEUP_RECEIVED:
-            TimerDriver_Stop();
-            FSM_voidHandleHandoverTimeout(Copy_u8DeviceId);
-            break;
-        
-        case EVENT_SECONDARY_PE_SUCCESSFUL:
-            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
-                    "\n[SUCCESS] Passive entry is done on anchor %d. Trigger distance measurement on this anchor...\n", 
-                    Global_u8CurrentAnchor);
-            UART_SendMessage(gArr_DebugMsg);
-            
-            /* Trigger distance measurement */
-            Global_u8CurrentDeviceId = Copy_u8DeviceId;
-            Global_u8SendTDM = 1;
-            break;
-            
-        default:
-            /* Unhandled event - no action required */
-            break;
-    }
-}
-
-/**
- * @brief Handle distance measurement handover state
- * @param Copy_enuEvent FSM event
- * @param Copy_u8DeviceId Device ID
- * @return None
- */
-static void FSM_voidHandleDistanceMeasurementHandover(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
-    /* Only process relevant events */
-    if (Copy_enuEvent != EVENT_RECEIVE_DISTANCE && Copy_enuEvent != EVENT_HANDOVER_FAILED) {
-        return;
-    }
-    
-    uint8_t Loc_u8NextAnchor = FSM_u8FindNextAnchor();
-    
-    if (Loc_u8NextAnchor <= CAN_ANCHOR_MAX) {
-        /* More anchors available - initiate handover */
-        Global_u8CurrentAnchor = Loc_u8NextAnchor;
-        Global_u8CurrentDeviceId = Copy_u8DeviceId;
-        Global_u8SendHandover = 1;
-        
+void FSM_voidHandleHandoverFail(uint8_t Copy_u8DeviceId) {
+    Global_u8HandoverTrials++;
+    uint8_t Loc_u8PreviousAnchor;
+    Loc_u8PreviousAnchor = (Global_u8CurrentAnchor - 1) ? Global_u8CurrentAnchor - 1 : CAN_ANCHOR_MAX;
+    if (Global_u8HandoverTrials == MAX_HANDOVER_RETRIES) {
+        /* Max retries reached - restart PE */
         snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
-                "\n[INFO] Sending handover command from anchor %d to anchor %d...\n", 
-                Global_u8CurrentAnchor - 1, Global_u8CurrentAnchor);
+        "\n[ERROR] Max handover from anchor %d to anchor %d reached. Starting PE on anchor %d...\n", 
+        Loc_u8PreviousAnchor, Global_u8CurrentAnchor,Global_u8CurrentAnchor);
         UART_SendMessage(gArr_DebugMsg);
-        
-        currentState = STATE_DISTANCE_MEASUREMENT_PROCESSING;
-        TimerDriver_Start(TIMEOUT_HANDOVER, ERR_voidHandoverTimeoutHandler);
+        Global_u8HandoverTrials = 0;
+        Global_u8SendPE = 1;
     } else {
-        /* No more anchors - evaluate results */
-        currentState = STATE_DISTANCE_MEASUREMENT_EVALUATION;
-        APP_voidFSMHandler(Copy_enuEvent);
-    }
-}
-
-/**
- * @brief Handle distance measurement evaluation state
- * @param Copy_enuEvent FSM event
- * @param Copy_u8DeviceId Device ID
- * @return None
- */
-static void FSM_voidHandleDistanceMeasurementEvaluation(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
-    if (Global_u8NoOfDistances >= APP_MINUMUM_DISTANCE_READINGS) {
-        /* Sufficient readings collected */
-        FSM_voidResetPEState();
-        UART_SendMessage("\n[INFO] Minimum distance readings met. Handover the connection to the primary anchor...\n");
-        
-        currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-        TimerDriver_Stop();
-
-        /* Handover to primary anchor for final decision */
-        Global_u8CurrentAnchor = CAN_ANCHOR_MAX + 1;
-        Global_u8CurrentDeviceId = Copy_u8DeviceId;
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
+        "\n[ERROR] Handover fail from anchor %d to anchor %d. Try again...\n", 
+        Loc_u8PreviousAnchor, Global_u8CurrentAnchor);
+        UART_SendMessage(gArr_DebugMsg);
+        /* Retry handover */
         Global_u8SendHandover = 1;
-        TimerDriver_Start(TIMEOUT_HANDOVER, ERR_voidHandoverTimeoutHandler);
-    } else {
-        /* Insufficient readings - restart process */
-        FSM_voidResetPEState();
-        Global_u8FirstTime = 1;
-        
-        UART_SendMessage("\n[INFO] Loop again through anchors...\n");
-        
-        currentState = STATE_DISTANCE_MEASUREMENT_INIT;
-        APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
     }
 }
 
@@ -416,7 +278,7 @@ static void FSM_voidHandlePrimaryTDM(APP_tenuEvents Copy_enuEvent, uint8_t Copy_
     if (Copy_enuEvent == EVENT_RECEIVE_DISTANCE) {
         TimerDriver_Stop();
         currentState = STATE_WAKEUP_DECISION_MAKING;
-        UART_SendMessage("\n[INFO] Distance measurement completed. Evaluating wake-up decision...\n");
+        UART_SendMessage("\n[SUCCESS] Distance measurement completed. Evaluating wake-up decision...\n");
 
         /* Evaluate distance threshold */
         uint16_t Loc_u16Distance = (uint16_t)Global_f64DistanceReadings[Copy_u8DeviceId][Global_u8CurrentAnchor];
@@ -451,30 +313,257 @@ static void FSM_voidHandleWakeupDecisionMaking(APP_tenuEvents Copy_enuEvent, uin
 }
 
 /**
+ * @brief Handle distance measurement initialization state
+ * @param Copy_enuEvent FSM event
+ * @param Copy_u8DeviceId Device ID
+ * @return None
+ */
+static void FSM_voidHandleDistanceMeasurementInit(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+    if (Copy_enuEvent == EVENT_DEVICE_IN_RANGE) {
+        /* Initialize distance measurement process */
+        Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
+        FSM_voidResetPEState();
+        
+        UART_SendMessage("\n[INFO] Initiating distance measurement process, starting with primary anchor\n");
+        
+        /* Trigger distance measurement on primary anchor */
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
+        currentState = STATE_DISTANCE_MEASUREMENT_PROCESSING;
+    }
+}
+
+/**
+ * @brief Handle distance measurement processing state
+ * @param Copy_enuEvent FSM event
+ * @param Copy_u8DeviceId Device ID
+ * @return None
+ */
+static void FSM_voidHandleDistanceMeasurementProcessing(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+    TimerDriver_Stop();
+    switch (Copy_enuEvent) {
+        case EVENT_RECEIVE_DISTANCE:
+            /* Record successful distance reading */
+            Global_u8NoOfDistances++;
+            Global_DistanceMeasurementDone[Global_u8CurrentAnchor] = 1;
+            Global_f64DistanceReadings[Copy_u8DeviceId][Global_u8CurrentAnchor] = 
+                (double_t)(gRSSIData[Global_u8CurrentAnchor].distance / 100.0);
+            Global_u8PERetryCount = 0;
+            
+            FSM_voidLogAnchorMessage("SUCCESS", "Distance received from", Global_u8CurrentAnchor);
+            
+            /* Move to handover state */
+            currentState = STATE_DISTANCE_MEASUREMENT_HANDOVER;
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+            break;
+
+        case EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR:
+        case EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR:
+            UART_SendMessage("\n[SUCCESS] Device Disconnected.\n");
+            
+            /* Schedule reset and PE restart */
+            Global_u8CurrentDeviceId = Copy_u8DeviceId;
+            UART_SendMessage("\n[INFO] Reset anchor and start PE again...\n");
+            Global_u8ResetAndPE = 2;
+            break;
+
+        case EVENT_HANDOVER_SUCCESS:
+            FSM_voidLogAnchorMessage("SUCCESS", "Handover is done. Reset previous anchor and trigger distance measurement on anchor ", Global_u8CurrentAnchor);
+            
+            /* Reset previous anchor and trigger distance measurement */
+            Global_u8CurrentDeviceId = Copy_u8DeviceId;
+            isResetNeeded = Global_u8CurrentAnchor - 1;
+            
+            CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor - 1, 0);
+            Global_u8SendTDM = 1;
+            break;
+
+        case EVENT_HANDOVER_FAILED:
+            FSM_voidHandleHandoverFail(Copy_u8DeviceId);
+            break;
+
+        case EVENT_PRIMARY_WAKEUP_RECEIVED:
+        case EVENT_SECONDARY_WAKEUP_RECEIVED:
+            FSM_voidHandleHandoverTimeout(Copy_u8DeviceId);
+            break;
+        
+        case EVENT_SECONDARY_PE_SUCCESSFUL:
+            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
+                    "\n[SUCCESS] Passive entry is done on anchor %d. Trigger distance measurement on this anchor...\n", 
+                    Global_u8CurrentAnchor);
+            UART_SendMessage(gArr_DebugMsg);
+            
+            /* Trigger distance measurement */
+            Global_u8CurrentDeviceId = Copy_u8DeviceId;
+            Global_u8SendTDM = 1;
+            break;
+            
+        default:
+            /* Unhandled event - no action required */
+            break;
+    }
+}
+
+/**
+ * @brief Handle distance measurement handover state
+ * @param Copy_enuEvent FSM event
+ * @param Copy_u8DeviceId Device ID
+ * @return None
+ */
+static void FSM_voidHandleDistanceMeasurementHandover(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+    /* Only process relevant events */
+    if (Copy_enuEvent != EVENT_RECEIVE_DISTANCE && Copy_enuEvent != EVENT_HANDOVER_FAILED) {
+        return;
+    }
+    
+    uint8_t Loc_u8NextAnchor = FSM_u8FindNextAnchor();
+    
+    if (Loc_u8NextAnchor <= CAN_ANCHOR_MAX) {
+        /* More anchors available - initiate handover */
+        Global_u8CurrentAnchor = Loc_u8NextAnchor;
+        Global_u8CurrentDeviceId = Copy_u8DeviceId;
+        Global_u8SendHandover = 1;
+        
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
+                "\n[INFO] Sending handover command from anchor %d to anchor %d...\n", 
+                Global_u8CurrentAnchor - 1, Global_u8CurrentAnchor);
+        UART_SendMessage(gArr_DebugMsg);
+        
+        currentState = STATE_DISTANCE_MEASUREMENT_PROCESSING;
+        TimerDriver_Start(TIMEOUT_HANDOVER, ERR_voidHandoverTimeoutHandler);
+    } else {
+        /* No more anchors - evaluate results */
+        currentState = STATE_DISTANCE_MEASUREMENT_EVALUATION;
+        APP_voidFSMHandler(Copy_enuEvent);
+    }
+}
+
+/**
+ * @brief Handle distance measurement evaluation state
+ * @param Copy_enuEvent FSM event
+ * @param Copy_u8DeviceId Device ID
+ * @return None
+ */
+static void FSM_voidHandleDistanceMeasurementEvaluation(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+    if (Global_u8NoOfDistances >= APP_MINUMUM_DISTANCE_READINGS) {
+        /* Sufficient readings collected */
+        FSM_voidResetPEState();
+        UART_SendMessage("\n[INFO] Minimum distance readings met. Handover the connection to the primary anchor...\n");
+        
+        currentState = STATE_FUSION_ALGO;
+        TimerDriver_Stop();
+
+        APP_voidFSMHandler(EVENT_START_FUSION);
+    } else {
+        /* Insufficient readings - restart process */
+        FSM_voidResetPEState();
+        Global_u8FirstTime = 1;
+        
+        UART_SendMessage("\n[INFO] Loop again through anchors...\n");
+        
+        currentState = STATE_DISTANCE_MEASUREMENT_INIT;
+        APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
+    }
+}
+
+
+/**
+ * @brief Handle fusion algorithm state
+ * @param Copy_enuEvent FSM event
+ * @param Copy_u8DeviceId Device ID
+ * @return None
+ */
+static void FSM_voidHandleFusionAlgo(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+    if(Copy_enuEvent == EVENT_START_FUSION){
+        object_list Loc_astrTestObj[CAN_ANCHOR_MAX];
+        double_t Loc_af64EstimateFinal[2];
+        Measurement_Type Loc_strMeasureA;
+
+        /* Prepare distance data for trilateration */
+        Loc_astrTestObj[0] = (object_list){Global_f64DistanceReadings[Copy_u8DeviceId][1], 1};
+        Loc_astrTestObj[1] = (object_list){Global_f64DistanceReadings[Copy_u8DeviceId][2], 2};
+        Loc_astrTestObj[2] = (object_list){Global_f64DistanceReadings[Copy_u8DeviceId][3], 3};
+
+        /* Initialize estimate array */
+        Loc_af64EstimateFinal[0] = 0;
+        Loc_af64EstimateFinal[1] = 0;
+
+        /* Execute trilateration algorithm */
+        Loc_strMeasureA = Master_trilaterate_position(Loc_astrTestObj);
+
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
+                "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", 
+                Loc_strMeasureA.x, Loc_strMeasureA.y);
+        UART_SendMessage(gArr_DebugMsg);
+
+        /* Particle filter implementation (commented out for performance) */
+        /*
+        if (firstTimeFlag) {
+            firstTimeFlag = 0;
+            Master_initialize_particles(particles, Loc_strMeasureA.x, Loc_strMeasureA.y, 1.00);
+        }
+
+        Master_prediction(particles);
+        Master_update_particles(particles, Loc_strMeasureA);
+        Master_resample(particles);
+        Master_estimate(particles, Loc_af64EstimateFinal);
+
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
+                "\n[INFO] Location from Particle Filter: (x = %.2f , y = %.2f)\n", 
+                Loc_af64EstimateFinal[0], Loc_af64EstimateFinal[1]);
+        UART_SendMessage(gArr_DebugMsg);
+        */
+
+        UART_SendMessage("\n[INFO] Fusion Algorithm is done, go to vehicle decision-making...\n");
+        
+        /* Reset secondary anchors and return to primary TDM */
+        currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
+        APP_voidFSMHandler(EVENT_TAKE_DECISION);
+
+    }
+}
+
+/**
  * @brief Handle vehicle level decision making state
  * @param Copy_enuEvent FSM event
  * @param Copy_u8DeviceId Device ID
  * @return None
  */
 static void FSM_voidHandleVehicleLevelDecisionMaking(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+        
+        // Decisions based on location
+
+
+        /* Handover to primary anchor */
+        currentState = STATE_HANDOVER_CONNECTION_TO_PRIMARY_ANCHOR;
+        
+        Global_u8CurrentAnchor = CAN_ANCHOR_MAX + 1;
+        Global_u8CurrentDeviceId = Copy_u8DeviceId;
+        Global_u8SendHandover = 1;
+        TimerDriver_Start(TIMEOUT_HANDOVER, ERR_voidHandoverTimeoutHandler);
+}
+
+
+/**
+ * @brief Handle handover connection to primary anchor state
+ * @param Copy_enuEvent FSM event
+ * @param Copy_u8DeviceId Device ID
+ * @return None
+ */
+static void FSM_voidHandleReturningConnectionToPrimaryAnchor(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
     TimerDriver_Stop();
     
     if (Copy_enuEvent == EVENT_HANDOVER_SUCCESS || Copy_enuEvent == EVENT_PRIMARY_PE_SUCCESSFUL) {
-        UART_SendMessage("\n[SUCCESS] Connection now is on the primary anchor. Executing vehicle-level decision-making process...\n");
+        UART_SendMessage("\n[SUCCESS] Connection now is on the primary anchor. Returning to distance measurement on primary anchor...\n");
         Global_u8HandoverTrials = 0;
         Global_u8CurrentAnchor = CAN_ANCHOR_1;
+        uint8_t Loc_u8Index;
         
-        /* Check if device is still in range */
-        uint16_t Loc_u16Distance = (uint16_t)Global_f64DistanceReadings[Copy_u8DeviceId][CAN_PRIMARY_ANCHOR];
-        if (Loc_u16Distance <= APP_DISTANCE_TRIGGER_THRESHOLD) {
-            UART_SendMessage("\n[INFO] Device is in range, start fusion algo...\n");
-            currentState = STATE_FUSION_ALGO;
-            APP_voidFSMHandler(EVENT_DISTANCE_BELOW_THRESHOLD);
-        } else {
-            UART_SendMessage("\n[INFO] Device is out of range, return to Wake up decision making...\n");
-            currentState = STATE_WAKEUP_DECISION_MAKING;
-            APP_voidFSMHandler(EVENT_DISTANCE_ABOVE_THRESHOLD);
+        currentState = STATE_PRIMARY_TDM;
+        for (Loc_u8Index = CAN_PRIMARY_ANCHOR + 1; Loc_u8Index <= CAN_ANCHOR_MAX; Loc_u8Index++) {
+            CAN_voidSendCommand(CAN_COMMAND_RESET, Loc_u8Index, 0);
         }
+        
+        Global_u8SendTDM = 1;
     }
     else if (Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR || 
              Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR) {
@@ -484,16 +573,8 @@ static void FSM_voidHandleVehicleLevelDecisionMaking(APP_tenuEvents Copy_enuEven
         Global_u8ResetAndPE = 2;
     }
     else if (Copy_enuEvent == EVENT_HANDOVER_FAILED) {
-        Global_u8HandoverTrials++;
-        if (Global_u8HandoverTrials == MAX_HANDOVER_RETRIES) {
-            /* Max retries reached - restart PE */
-            Global_u8HandoverTrials = 0;
-            Global_u8CurrentAnchor = CAN_ANCHOR_1;
-            Global_u8SendPE = 1;
-        } else {
-            /* Retry handover */
-            Global_u8SendHandover = 1;
-        }
+        Global_u8CurrentAnchor = CAN_ANCHOR_1;
+        FSM_voidHandleHandoverFail(Copy_u8DeviceId);
     }
     else if (Copy_enuEvent == EVENT_SECONDARY_WAKEUP_RECEIVED) {
         /* Handle timeout scenario */
@@ -501,64 +582,6 @@ static void FSM_voidHandleVehicleLevelDecisionMaking(APP_tenuEvents Copy_enuEven
         Global_u8CurrentDeviceId = Copy_u8DeviceId;
         FSM_voidHandleHandoverTimeout(Copy_u8DeviceId);
     }
-}
-
-/**
- * @brief Handle fusion algorithm state
- * @param Copy_enuEvent FSM event
- * @param Copy_u8DeviceId Device ID
- * @return None
- */
-static void FSM_voidHandleFusionAlgo(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
-    object_list Loc_astrTestObj[CAN_ANCHOR_MAX];
-    double_t Loc_af64EstimateFinal[2];
-    Measurement_Type Loc_strMeasureA;
-    uint8_t Loc_u8Index;
-
-    /* Prepare distance data for trilateration */
-    Loc_astrTestObj[0] = (object_list){Global_f64DistanceReadings[Copy_u8DeviceId][1], 1};
-    Loc_astrTestObj[1] = (object_list){Global_f64DistanceReadings[Copy_u8DeviceId][2], 2};
-    Loc_astrTestObj[2] = (object_list){Global_f64DistanceReadings[Copy_u8DeviceId][3], 3};
-
-    /* Initialize estimate array */
-    Loc_af64EstimateFinal[0] = 0;
-    Loc_af64EstimateFinal[1] = 0;
-
-    /* Execute trilateration algorithm */
-    Loc_strMeasureA = Master_trilaterate_position(Loc_astrTestObj);
-
-    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
-             "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", 
-             Loc_strMeasureA.x, Loc_strMeasureA.y);
-    UART_SendMessage(gArr_DebugMsg);
-
-    /* Particle filter implementation (commented out for performance) */
-    /*
-    if (firstTimeFlag) {
-        firstTimeFlag = 0;
-        Master_initialize_particles(particles, Loc_strMeasureA.x, Loc_strMeasureA.y, 1.00);
-    }
-
-    Master_prediction(particles);
-    Master_update_particles(particles, Loc_strMeasureA);
-    Master_resample(particles);
-    Master_estimate(particles, Loc_af64EstimateFinal);
-
-    snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
-             "\n[INFO] Location from Particle Filter: (x = %.2f , y = %.2f)\n", 
-             Loc_af64EstimateFinal[0], Loc_af64EstimateFinal[1]);
-    UART_SendMessage(gArr_DebugMsg);
-    */
-
-    UART_SendMessage("\n[INFO] Fusion Algorithm is done, returning to vehicle decision-making...\n");
-    
-    /* Reset secondary anchors and return to primary TDM */
-    currentState = STATE_PRIMARY_TDM;
-    for (Loc_u8Index = CAN_PRIMARY_ANCHOR + 1; Loc_u8Index <= CAN_ANCHOR_MAX; Loc_u8Index++) {
-        CAN_voidSendCommand(CAN_COMMAND_RESET, Loc_u8Index, 0);
-    }
-    
-    Global_u8SendTDM = 1;
 }
 
 /*==================== PUBLIC FUNCTION IMPLEMENTATIONS ====================*/
@@ -616,12 +639,16 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_enuEvent) {
             FSM_voidHandleDistanceMeasurementEvaluation(Copy_enuEvent, Loc_u8DeviceId);
             break;
 
+        case STATE_FUSION_ALGO:
+            FSM_voidHandleFusionAlgo(Copy_enuEvent, Loc_u8DeviceId);
+            break;
+
         case STATE_VEHICLE_LEVEL_DECISION_MAKING:
             FSM_voidHandleVehicleLevelDecisionMaking(Copy_enuEvent, Loc_u8DeviceId);
             break;
 
-        case STATE_FUSION_ALGO:
-            FSM_voidHandleFusionAlgo(Copy_enuEvent, Loc_u8DeviceId);
+        case STATE_HANDOVER_CONNECTION_TO_PRIMARY_ANCHOR:
+            FSM_voidHandleReturningConnectionToPrimaryAnchor(Copy_enuEvent, Loc_u8DeviceId);
             break;
 
         default:

@@ -26,8 +26,9 @@ typedef enum {
     STATE_DISTANCE_MEASUREMENT_PROCESSING,     // Processing PE for current anchor
     STATE_DISTANCE_MEASUREMENT_HANDOVER,       // Handling handover between anchors
     STATE_DISTANCE_MEASUREMENT_EVALUATION,     // Evaluate if enough readings collected
+    STATE_FUSION_ALGO,
     STATE_VEHICLE_LEVEL_DECISION_MAKING,
-    STATE_FUSION_ALGO
+    STATE_HANDOVER_CONNECTION_TO_PRIMARY_ANCHOR
 } APP_tenuStates;
 
 typedef enum {
@@ -48,18 +49,20 @@ typedef enum {
     EVENT_PRIMARY_WAKEUP_RECEIVED,
     EVENT_SECONDARY_WAKEUP_RECEIVED,
     EVENT_HANDOVER_SUCCESS,
-    EVENT_HANDOVER_FAILED
+    EVENT_HANDOVER_FAILED,
+    EVENT_START_FUSION,
+    EVENT_TAKE_DECISION
 } APP_tenuEvents;
 
 
 
-#define APP_DISTANCE_TRIGGER_THRESHOLD      2
+#define APP_DISTANCE_TRIGGER_THRESHOLD      1
 #define APP_MINUMUM_DISTANCE_READINGS       2
 #define APP_CS_NO_OF_MEASURING_DISTANCE     1
 #define APP_MAX_NO_OF_DEVICES               4
 
 #define TIMEOUT_DISCONNECT                  500
-#define TIMEOUT_HANDOVER                    2000
+#define TIMEOUT_HANDOVER                    1000
 
 void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent);
 
