@@ -74,7 +74,8 @@ typedef enum
     CAN_COMMAND_RESET,
     CAN_COMMAND_INVALID,
     CAN_COMMAND_DISCONNECT_FROM_DEVICE,
-    CAN_COMMAND_HANDOVER
+    CAN_COMMAND_HANDOVER,
+    CAN_COMMAND_FACTORY_RESET
 } CAN_tenumCommands;
 
 typedef enum
@@ -89,12 +90,6 @@ typedef enum{
     PE,
     TDM
 }CAN_tenuDistanceType;
-
-typedef enum{
-    APP_NOT_DETERMINED,
-    APP_RSSI,
-    APP_CS
-}APP_tenuRangingType;
 
 typedef enum{
     VEHICLE_PK_CERTIFICATE,

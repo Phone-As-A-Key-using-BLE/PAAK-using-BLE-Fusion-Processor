@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include "APP_FSM.h"
 #include "can.h"
 #include "UART/uart.h"
 #include "LED/led.h"
@@ -19,7 +20,14 @@ extern uint8_t Global_u8CurrentAnchor;
 extern APP_tenuStates currentState;
 extern uint8_t isBondingDataReceived;
 extern uint8_t Global_u8ResetAndPE;
-
+extern uint8_t Global_u8NextAnchor;
+extern APP_tenuRangingType Global_u8DevicesRangingType[APP_MAX_NO_OF_DEVICES];
+static void APP_voidInitRangingTypes(){
+    uint8_t Loc_u8Devices;
+    for (Loc_u8Devices = 0; Loc_u8Devices < APP_MAX_NO_OF_DEVICES; Loc_u8Devices++) {
+        Global_u8DevicesRangingType[Loc_u8Devices] = DeviceStateManager_Load(Loc_u8Devices);
+    }
+}
 void APP_voidSystemInit(){ 
 
     // Initialize system clock
@@ -34,14 +42,14 @@ void APP_voidSystemInit(){
     UART_Init();
     TimerDriver_Init();
     DeviceStateManager_Init();
-
+    APP_voidInitRangingTypes();
 }
 
 void APP_voidCommandsHandler(){
     if(Global_u8SendPE){
         __asm(" CPSID I \n");
         Global_u8SendPE = 0;
-        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8NextAnchor, Global_u8CurrentDeviceId);
         __asm(" CPSIE I \n");
     }
     if(Global_u8SendTDM){
@@ -53,11 +61,7 @@ void APP_voidCommandsHandler(){
     if(Global_u8SendHandover){
         __asm(" CPSID I \n");
         Global_u8SendHandover = 0;
-        if(Global_u8CurrentAnchor > CAN_ANCHOR_MAX){
-            CAN_voidSendHandoverCommand(CAN_ANCHOR_MAX, CAN_ANCHOR_1, Global_u8CurrentDeviceId);
-        }
-        else
-            CAN_voidSendHandoverCommand(Global_u8CurrentAnchor - 1, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
+        CAN_voidSendHandoverCommand(Global_u8CurrentAnchor, Global_u8NextAnchor, Global_u8CurrentDeviceId);
         __asm(" CPSIE I \n");
     }
     if(Global_u8ResetAndPE == 2){
@@ -66,6 +70,6 @@ void APP_voidCommandsHandler(){
     }
     if(Global_u8ResetAndPE == 1){
         Global_u8ResetAndPE = 0;
-        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8NextAnchor, Global_u8CurrentDeviceId);
     }
 }

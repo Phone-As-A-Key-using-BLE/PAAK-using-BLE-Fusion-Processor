@@ -14,7 +14,7 @@
 
 extern uint8_t Global_u8CurrentAnchor; // Temp Solution
 extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
-extern uint8_t isResetNeeded;
+extern uint8_t Global_u8IgnoreResponse;
 
 /* ---------------------------------------------------------------------------
  * Data structures mirroring NXP-based variables
@@ -157,7 +157,9 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_PE_DISCONNECTED)
             {
-                APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR);
+                if (Global_u8IgnoreResponse != CAN_ANCHOR_1) {
+                    APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR);
+                }
                 break;
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
@@ -183,7 +185,9 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_PE_DISCONNECTED)
             {
-                APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR);
+                if (Global_u8IgnoreResponse != CAN_ANCHOR_2) {
+                    APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR);
+                }
                 break;
 
             }
@@ -209,7 +213,9 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_PE_DISCONNECTED)
             {
-                APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR);
+                if (Global_u8IgnoreResponse != CAN_ANCHOR_3) {
+                    APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR);
+                }
                 break;
 
             }
@@ -231,8 +237,8 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             Global_u8ResetAndPE = 1;
             break;
         }
-        if(isResetNeeded != CAN_ANCHOR_1){
-            isResetNeeded = 0;
+        if(Global_u8IgnoreResponse != CAN_ANCHOR_1){
+            Global_u8IgnoreResponse = 0;
             if(currentState == STATE_IDLE){
                 currentState = STATE_PRIMARY_PE;
                 Global_u8CurrentDeviceId = 0;
@@ -242,7 +248,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
         }
          else{
-               isResetNeeded = 0;
+               Global_u8IgnoreResponse = 0;
          }
             break;
         case CAN_ID_WAKEUP_NOTIFICATION_A2:
@@ -250,12 +256,12 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             Global_u8ResetAndPE = 1;
             break;
         }
-         if(isResetNeeded != CAN_ANCHOR_2){
-            isResetNeeded = 0;
+         if(Global_u8IgnoreResponse != CAN_ANCHOR_2){
+            Global_u8IgnoreResponse = 0;
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
          }
          else{
-               isResetNeeded = 0;
+               Global_u8IgnoreResponse = 0;
          }
             break;
 
@@ -264,12 +270,12 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             Global_u8ResetAndPE = 1;
             break;
         }
-         if(isResetNeeded != CAN_ANCHOR_3){
-            isResetNeeded = 0;
+         if(Global_u8IgnoreResponse != CAN_ANCHOR_3){
+            Global_u8IgnoreResponse = 0;
             APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
          }
          else{
-            isResetNeeded = 0;
+            Global_u8IgnoreResponse = 0;
          }
             break;
 

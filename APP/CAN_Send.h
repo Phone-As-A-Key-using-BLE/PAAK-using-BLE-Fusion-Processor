@@ -11,6 +11,7 @@
 #define CAN_SEND_H_
 
 #include "APP/Connectivity/connectivity.h"
+#include "APP/APP_FSM.h"
 /* Helper Macros */
 
 /** 

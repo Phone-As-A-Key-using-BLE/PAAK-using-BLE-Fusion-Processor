@@ -8,13 +8,12 @@
 #ifndef APP_APP_FSM_H_
 #define APP_APP_FSM_H_
 
-#include "APP_FSM.h"
 #define MAX_PE_RETRIES 3  // User-defined max retries for PE
 #define MAX_HANDOVER_RETRIES 5
 
 typedef enum {
     STATE_IDLE,
-    STATE_START_OWNER_PAIRING,
+    STATE_TRIGGER_OWNER_PAIRING,
     STATE_WAITING_FOR_VERIFIERS,
     STATE_WAITING_FOR_PK_CERTIFICATE,
     STATE_WAITING_FOR_BONDING_DATA,
@@ -54,9 +53,18 @@ typedef enum {
     EVENT_TAKE_DECISION
 } APP_tenuEvents;
 
+typedef enum{
+    APP_NOT_DETERMINED,
+    APP_RSSI,
+    APP_CS
+}APP_tenuRangingType;
 
+typedef enum {
+    DIRECTION_FORWARD = 1,
+    DIRECTION_BACKWARD = -1
+} AnchorTraversalDirection_t;
 
-#define APP_DISTANCE_TRIGGER_THRESHOLD      1
+#define APP_DISTANCE_TRIGGER_THRESHOLD      3
 #define APP_MINUMUM_DISTANCE_READINGS       2
 #define APP_CS_NO_OF_MEASURING_DISTANCE     1
 #define APP_MAX_NO_OF_DEVICES               4
