@@ -566,26 +566,8 @@ static void FSM_voidHandleFusionAlgo(APP_tenuEvents Copy_enuEvent, uint8_t Copy_
         UART_SendMessage("\n[INFO] Fusion Algorithm is done, go to vehicle decision-making...\n");
         
         /* Reset secondary anchors and return to primary TDM */
-        // currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-        // APP_voidFSMHandler(EVENT_TAKE_DECISION);
-            // Reverse direction for the next cycle
-        Global_traversalDirection = (Global_traversalDirection == DIRECTION_FORWARD) 
-                                    ? DIRECTION_BACKWARD 
-                                    : DIRECTION_FORWARD;
-
-       // currentState = STATE_HANDOVER_CONNECTION_TO_PRIMARY_ANCHOR;
-        
-        // Set next anchor in the new direction
-        Global_u8CurrentAnchor = (Global_traversalDirection == DIRECTION_FORWARD) 
-                                ? CAN_ANCHOR_1 
-                                : CAN_ANCHOR_MAX;
-        
-        if(Global_u8CurrentAnchor != CAN_PRIMARY_ANCHOR){
-            Global_u8IgnoreResponse = CAN_PRIMARY_ANCHOR;
-            CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_PRIMARY_ANCHOR, 0);
-        }
-        currentState = STATE_PRIMARY_TDM;
-        Global_u8SendTDM = 1;
+        currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
+        APP_voidFSMHandler(EVENT_TAKE_DECISION);
     }
 }
 
@@ -600,13 +582,22 @@ static void FSM_voidHandleVehicleLevelDecisionMaking(APP_tenuEvents Copy_enuEven
         // Decisions based on location
 
 
-        /* Handover to primary anchor */
-        currentState = STATE_HANDOVER_CONNECTION_TO_PRIMARY_ANCHOR;
+        // Reverse direction for the next cycle
+        Global_traversalDirection = (Global_traversalDirection == DIRECTION_FORWARD) 
+                                    ? DIRECTION_BACKWARD 
+                                    : DIRECTION_FORWARD;
+
+        // Set next anchor in the new direction
+        Global_u8CurrentAnchor = (Global_traversalDirection == DIRECTION_FORWARD) 
+                                ? CAN_ANCHOR_1 
+                                : CAN_ANCHOR_MAX;
         
-        Global_u8CurrentAnchor = CAN_ANCHOR_MAX + 1;
-        Global_u8CurrentDeviceId = Copy_u8DeviceId;
-        Global_u8SendHandover = 1;
-        //TimerDriver_Start(TIMEOUT_HANDOVER, ERR_voidHandoverTimeoutHandler);
+        if(Global_u8CurrentAnchor != CAN_PRIMARY_ANCHOR){
+            Global_u8IgnoreResponse = CAN_PRIMARY_ANCHOR;
+            CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_PRIMARY_ANCHOR, 0);
+        }
+        currentState = STATE_PRIMARY_TDM;
+        Global_u8SendTDM = 1;
 }
 
 
