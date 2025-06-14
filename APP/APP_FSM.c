@@ -52,6 +52,9 @@ uint8_t Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
 /* Next anchor ID chosen */
 uint8_t Global_u8NextAnchor = CAN_PRIMARY_ANCHOR;
 
+/* Current device NVM index in anchors */
+uint8_t Global_u8CurrentNvmIndex = 0;
+
 /* Store Ranging type of each device for quick access */
 APP_tenuRangingType Global_u8DevicesRangingType[APP_MAX_NO_OF_DEVICES] = {0};
 
@@ -97,7 +100,10 @@ static void FSM_voidHandleIdleState(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleTriggerOwnerPairing(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleWaitingForBondingData(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleWaitingForPrimaryWakeup(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
-static void FSM_voidHandlePrimaryPE(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleCSPrimaryPE(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleRSSIPrimaryPE(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleStartCsState(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
+static void FSM_voidHandleStartRSSIState(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandlePrimaryTDM(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandleWakeupDecisionMaking(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandleDistanceMeasurementInit(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
@@ -222,7 +228,7 @@ static void FSM_voidHandleIdleState(APP_tenuEvents Copy_enuEvent) {
     if (Copy_enuEvent == EVENT_OWNER_PAIRING_BUTTON_PRESSED) {
         UART_SendMessage("\n[INFO] Owner pairing button pressed. Factory reset all anchors...\n");
         currentState = STATE_TRIGGER_OWNER_PAIRING;
-        CAN_voidSendCommand(CAN_COMMAND_FACTORY_RESET, CAN_RESET_ALL, 0);
+        CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_RESET_ALL, 0);
     }
 }
 
@@ -270,37 +276,105 @@ static void FSM_voidHandleWaitingForBondingData(APP_tenuEvents Copy_enuEvent) {
  */
 static void FSM_voidHandleWaitingForPrimaryWakeup(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
     if (Copy_enuEvent == EVENT_PRIMARY_WAKEUP_RECEIVED) {
-        currentState = STATE_PRIMARY_PE;
+        currentState = STATE_CS_PRIMARY_PE;
         UART_SendMessage("\n[INFO] Wake-up signal received. Triggering Passive Entry (PE) in CS mode on primary anchor...\n");
-        DeviceStateManager_Update(Copy_u8DeviceId, APP_CS);
-        Global_u8DevicesRangingType[Copy_u8DeviceId] = APP_CS;
+        Global_u8DevicesRangingType[Global_u8CurrentNvmIndex] = APP_CS;
         Global_u8CurrentDeviceId = Copy_u8DeviceId;
         Global_u8SendPE = 1;
     }
 }
 
 /**
- * @brief Handle primary passive entry state
+ * @brief Handle CS primary passive entry state
  * @param Copy_enuEvent FSM event
  * @param Copy_u8DeviceId Device ID
  * @return None
  */
-static void FSM_voidHandlePrimaryPE(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+static void FSM_voidHandleCSPrimaryPE(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
     if (Copy_enuEvent == EVENT_PRIMARY_PE_SUCCESSFUL) {
+        DeviceStateManager_Update(Global_u8CurrentNvmIndex, APP_CS);
         currentState = STATE_PRIMARY_TDM;
         UART_SendMessage("\n[SUCCESS] Primary Passive Entry successful, The device supports CS. Proceeding to Trigger Distance Measurement (TDM)...\n");
         CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
     }
     else if (Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR) {
-        currentState = STATE_PRIMARY_PE;
+        currentState = STATE_CS_PRIMARY_PE;
         UART_SendMessage("\n[ERROR] Primary Passive Entry failed. Trigger PE again...\n");
         CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
     }
     else if (Copy_enuEvent == EVENT_PRIMARY_WAKEUP_RECEIVED) {
-        /* CS not supported, fallback to RSSI */
-        DeviceStateManager_Update(Copy_u8DeviceId, APP_RSSI);
         UART_SendMessage("\n[ERROR] CS is not supported in mobile. Turning to RSSI...\n");
-        Global_u8DevicesRangingType[Copy_u8DeviceId] = APP_RSSI;
+        Global_u8DevicesRangingType[Global_u8CurrentNvmIndex] = APP_RSSI;
+        currentState = STATE_RSSI_PRIMARY_PE;
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
+    }
+}
+
+
+/**
+ * @brief Handle CS primary passive entry state
+ * @param Copy_enuEvent FSM event
+ * @param Copy_u8DeviceId Device ID
+ * @return None
+ */
+static void FSM_voidHandleRSSIPrimaryPE(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+    if (Copy_enuEvent == EVENT_PRIMARY_PE_SUCCESSFUL) {
+        DeviceStateManager_Update(Global_u8CurrentNvmIndex, APP_RSSI);
+        currentState = STATE_PRIMARY_TDM;
+        UART_SendMessage("\n[SUCCESS] Primary Passive Entry successful, RSSI is used!. Proceeding to Trigger Distance Measurement (TDM)...\n");
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
+    }
+    else if (Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR) {
+        currentState = STATE_RSSI_PRIMARY_PE;
+        UART_SendMessage("\n[ERROR] Primary Passive Entry failed. Trigger PE again...\n");
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
+    }
+}
+
+/**
+ * @brief Handle CS start state
+ * @param Copy_enuEvent FSM event
+ * @param Copy_u8DeviceId Device ID
+ * @return None
+ */
+static void FSM_voidHandleStartCsState(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+    if (Copy_enuEvent == EVENT_PRIMARY_PE_SUCCESSFUL) {
+        currentState = STATE_PRIMARY_TDM;
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
+                "\n[SUCCESS] Device %d Connected with CS!. Trigger distance measurement...\n", 
+                Global_u8CurrentDeviceId);
+        UART_SendMessage(gArr_DebugMsg);
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
+    }
+    else if (Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR) {
+        currentState = STATE_START_CS_STATE;
+        UART_SendMessage("\n[ERROR] Primary Passive Entry failed. Trigger PE again...\n");
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
+    }
+    else if (Copy_enuEvent == EVENT_PRIMARY_WAKEUP_RECEIVED) {
+        currentState = STATE_START_RSSI_STATE;
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
+    }
+}
+
+/**
+ * @brief Handle RSSI start state
+ * @param Copy_enuEvent FSM event
+ * @param Copy_u8DeviceId Device ID
+ * @return None
+ */
+static void FSM_voidHandleStartRSSIState(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+    if (Copy_enuEvent == EVENT_PRIMARY_PE_SUCCESSFUL) {
+        currentState = STATE_PRIMARY_TDM;
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
+                "\n[SUCCESS] Device %d Connected with RSSI!. Trigger distance measurement...\n", 
+                Global_u8CurrentDeviceId);
+        UART_SendMessage(gArr_DebugMsg);
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
+    }
+    else if (Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR) {
+        currentState = STATE_START_RSSI_STATE;
+        UART_SendMessage("\n[ERROR] Primary Passive Entry failed. Trigger PE again...\n");
         CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
     }
 }
@@ -320,9 +394,9 @@ static void FSM_voidHandlePrimaryTDM(APP_tenuEvents Copy_enuEvent, uint8_t Copy_
         /* Evaluate distance threshold */
         uint16_t Loc_u16Distance = (uint16_t)Global_f64DistanceReadings[Copy_u8DeviceId][Global_u8CurrentAnchor];
         if (Loc_u16Distance <= APP_DISTANCE_TRIGGER_THRESHOLD) {
-            APP_voidFSMHandler(EVENT_DISTANCE_BELOW_THRESHOLD);
+            APP_voidFSMHandler(EVENT_DISTANCE_BELOW_THRESHOLD, Copy_u8DeviceId);
         } else {
-            APP_voidFSMHandler(EVENT_DISTANCE_ABOVE_THRESHOLD);
+            APP_voidFSMHandler(EVENT_DISTANCE_ABOVE_THRESHOLD, Copy_u8DeviceId);
         }
     }
     else if(Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR || Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR){
@@ -348,7 +422,7 @@ static void FSM_voidHandleWakeupDecisionMaking(APP_tenuEvents Copy_enuEvent, uin
         currentState = STATE_DISTANCE_MEASUREMENT_INIT;
         UART_SendMessage("\n[INFO] Device is in range. Starting distance measurements through anchors...\n");
         Global_u8FirstTime = 1;
-        APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
+        APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE, Copy_u8DeviceId);
     }
     else if (Copy_enuEvent == EVENT_DISTANCE_ABOVE_THRESHOLD) {
         /* Device out of range - retry primary anchor */
@@ -396,7 +470,7 @@ static void FSM_voidHandleDistanceMeasurementProcessing(APP_tenuEvents Copy_enuE
             
             /* Move to handover state */
             currentState = STATE_DISTANCE_MEASUREMENT_HANDOVER;
-            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+            APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE, Copy_u8DeviceId);
             break;
 
         case EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR:
@@ -483,7 +557,7 @@ static void FSM_voidHandleDistanceMeasurementHandover(APP_tenuEvents Copy_enuEve
         /* No more anchors - evaluate results */
         Global_u8NextAnchor = CAN_ANCHOR_MAX - 1;
         currentState = STATE_DISTANCE_MEASUREMENT_EVALUATION;
-        APP_voidFSMHandler(Copy_enuEvent);
+        APP_voidFSMHandler(Copy_enuEvent, Copy_u8DeviceId);
     }
 }
 
@@ -502,7 +576,7 @@ static void FSM_voidHandleDistanceMeasurementEvaluation(APP_tenuEvents Copy_enuE
         
         currentState = STATE_FUSION_ALGO;
 
-        APP_voidFSMHandler(EVENT_START_FUSION);
+        APP_voidFSMHandler(EVENT_START_FUSION, Copy_u8DeviceId);
     } else {
         /* Insufficient readings - restart process */
         FSM_voidResetPEState();
@@ -511,7 +585,7 @@ static void FSM_voidHandleDistanceMeasurementEvaluation(APP_tenuEvents Copy_enuE
         UART_SendMessage("\n[INFO] Loop again through anchors...\n");
         
         currentState = STATE_DISTANCE_MEASUREMENT_INIT;
-        APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE);
+        APP_voidFSMHandler(EVENT_DEVICE_IN_RANGE, Copy_u8DeviceId);
     }
 }
 
@@ -567,7 +641,7 @@ static void FSM_voidHandleFusionAlgo(APP_tenuEvents Copy_enuEvent, uint8_t Copy_
         
         /* Reset secondary anchors and return to primary TDM */
         currentState = STATE_VEHICLE_LEVEL_DECISION_MAKING;
-        APP_voidFSMHandler(EVENT_TAKE_DECISION);
+        APP_voidFSMHandler(EVENT_TAKE_DECISION, Copy_u8DeviceId);
     }
 }
 
@@ -648,14 +722,15 @@ static void FSM_voidHandleReturningConnectionToPrimaryAnchor(APP_tenuEvents Copy
 /**
  * @brief Main FSM handler function
  * @param Copy_enuEvent Event to process
+ * @param Copy_u8DeviceId Device to handle
  * @return None
  * 
  * This function implements the main state machine logic for the vehicle access control system.
  * It handles various states including device pairing, passive entry, distance measurements,
  * and sensor fusion algorithms.
  */
-void APP_voidFSMHandler(APP_tenuEvents Copy_enuEvent) {
-    uint8_t Loc_u8DeviceId = 0;
+void APP_voidFSMHandler(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
+    uint8_t Loc_u8DeviceId = Copy_u8DeviceId;
 
     switch (currentState) {
         case STATE_IDLE:
@@ -674,8 +749,20 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_enuEvent) {
             FSM_voidHandleWaitingForPrimaryWakeup(Copy_enuEvent, Loc_u8DeviceId);
             break;
 
-        case STATE_PRIMARY_PE:
-            FSM_voidHandlePrimaryPE(Copy_enuEvent, Loc_u8DeviceId);
+        case STATE_CS_PRIMARY_PE:
+            FSM_voidHandleCSPrimaryPE(Copy_enuEvent, Loc_u8DeviceId);
+            break;
+       
+        case STATE_RSSI_PRIMARY_PE:
+            FSM_voidHandleRSSIPrimaryPE(Copy_enuEvent, Loc_u8DeviceId);
+            break;
+
+        case STATE_START_CS_STATE:
+            FSM_voidHandleStartCsState(Copy_enuEvent, Loc_u8DeviceId);
+            break;
+
+        case STATE_START_RSSI_STATE:
+            FSM_voidHandleStartRSSIState(Copy_enuEvent, Loc_u8DeviceId);
             break;
 
         case STATE_PRIMARY_TDM:

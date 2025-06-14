@@ -21,6 +21,9 @@
 #include "can_msg_types.h"
 #include "CAN_Send.h"
 
+extern uint8_t Global_u8CurrentNvmIndex;
+extern APP_tenuStates currentState;
+extern APP_tenuRangingType Global_u8DevicesRangingType[APP_MAX_NO_OF_DEVICES];
 extern char gArr_DebugMsg[1024];     // Buffer for formatted print output
 const char* CAN_CommandStrings[] = {
     "CAN_COMMAND_TRIGGER_OWNER_PAIRING",
@@ -120,7 +123,7 @@ void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8Recei
     
     if(Copy_enuCommand == CAN_COMMAND_TRIGGER_PASSIVE_ENTRY || Copy_enuCommand == CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT)
     {
-        loc_u8CanData[3] = DeviceStateManager_Load(Copy_u8Data);
+        loc_u8CanData[3] = Global_u8DevicesRangingType[Global_u8CurrentNvmIndex];
         if(loc_u8CanData[3] != APP_RSSI)
             loc_u8CanData[3] = APP_CS;
 
@@ -156,7 +159,7 @@ void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Hando
     loc_u8CanData[1] = Copy_u8ReceiverId;
     loc_u8CanData[2] = Copy_u8deviceId ;
     loc_u8CanData[3] = Copy_u8HandoverTo;
-    loc_u8CanData[4] = DeviceStateManager_Load(Copy_u8deviceId);
+    loc_u8CanData[4] = Global_u8DevicesRangingType[Copy_u8deviceId];
     if(loc_u8CanData[4] != APP_RSSI)
         loc_u8CanData[4] = APP_CS;
 

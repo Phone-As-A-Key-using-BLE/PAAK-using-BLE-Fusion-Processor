@@ -18,7 +18,10 @@ typedef enum {
     STATE_WAITING_FOR_PK_CERTIFICATE,
     STATE_WAITING_FOR_BONDING_DATA,
     STATE_WAITING_FOR_PRIMARY_WAKEUP,
-    STATE_PRIMARY_PE,
+    STATE_CS_PRIMARY_PE,
+    STATE_RSSI_PRIMARY_PE,
+    STATE_START_CS_STATE,
+    STATE_START_RSSI_STATE,
     STATE_PRIMARY_TDM,
     STATE_WAKEUP_DECISION_MAKING,
     STATE_DISTANCE_MEASUREMENT_INIT,           // Initialize secondary PE process
@@ -72,6 +75,5 @@ typedef enum {
 #define TIMEOUT_DISCONNECT                  500
 #define TIMEOUT_HANDOVER                    1000
 
-void APP_voidFSMHandler(APP_tenuEvents Copy_structEvent);
-
+void APP_voidFSMHandler(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 #endif /* APP_APP_FSM_H_ */

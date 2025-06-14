@@ -182,7 +182,7 @@ void CONNECTIVITY_callback(CONNECTIVITY_Message_t *msg)
     case MSG_TYPE_ALERT:
         break;
     case MSG_TYPE_REGISTRATION:
-        APP_voidFSMHandler(EVENT_VERIFIERS_RECEIVED);
+        APP_voidFSMHandler(EVENT_VERIFIERS_RECEIVED, Global_u8CurrentDeviceId);
          break;
     case MSG_TYPE_PK_VEHICLE_CERTIFICATE:
         CAN_voidSendCertificate(Global_u8CurrentDeviceId,VEHICLE_PK_CERTIFICATE, msg->data_len, msg->data);

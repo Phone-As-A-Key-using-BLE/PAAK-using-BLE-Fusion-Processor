@@ -83,7 +83,8 @@ typedef enum
     CAN_PE_SUCCESS,
     CAN_PE_DISCONNECTED,
     CAN_HANDOVER_SUCCESS,
-    CAN_HANDOVER_FAILED
+    CAN_HANDOVER_FAILED,
+    CAN_RSSI_MODE
 } CAN_tenumStatus;
 
 typedef enum{

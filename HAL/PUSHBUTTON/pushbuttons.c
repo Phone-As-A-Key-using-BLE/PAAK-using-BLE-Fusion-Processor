@@ -53,7 +53,7 @@ void PushButtonHandler(void) {
     isBondingDataReceived=0;
     currentState = STATE_IDLE;
     
-    APP_voidFSMHandler(EVENT_OWNER_PAIRING_BUTTON_PRESSED);
+    APP_voidFSMHandler(EVENT_OWNER_PAIRING_BUTTON_PRESSED, 0);
     // When SW1 is pressed, turn on the Red LED and stop the application
     buttonPressed = true;
 }

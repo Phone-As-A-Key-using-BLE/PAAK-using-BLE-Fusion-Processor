@@ -15,6 +15,7 @@
 extern uint8_t Global_u8CurrentAnchor; // Temp Solution
 extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
 extern uint8_t Global_u8IgnoreResponse;
+extern uint8_t Global_u8CurrentNvmIndex;
 
 /* ---------------------------------------------------------------------------
  * Data structures mirroring NXP-based variables
@@ -121,7 +122,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             parseDistanceData(pRxMsg, rxData);
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
                 counter = 0;
-                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE, s_distanceData.deviceId);
             }
             break;
 
@@ -131,7 +132,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             parseDistanceData(pRxMsg, rxData);
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
                 counter = 0;
-                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE, s_distanceData.deviceId);
             }
             break;
 
@@ -142,95 +143,106 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             parseDistanceData(pRxMsg, rxData);
             if(counter == APP_CS_NO_OF_MEASURING_DISTANCE){
                 counter = 0;
-                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+                APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE, s_distanceData.deviceId);
             }
             break;
 
         /* PE Status messages --------------------------------------------- */
         case CAN_ID_STATUS_A1:
+        {
             snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Received Status: %s\r\n", CAN_statusStr[rxData[0]]);
             UART_SendMessage(gArr_DebugMsg);
             if (rxData[0] == CAN_PE_SUCCESS)
             {
-                APP_voidFSMHandler(EVENT_PRIMARY_PE_SUCCESSFUL);
+                Global_u8CurrentNvmIndex = rxData[3];
+                Global_u8CurrentDeviceId = rxData[2];
+                APP_voidFSMHandler(EVENT_PRIMARY_PE_SUCCESSFUL, Global_u8CurrentDeviceId);
                 break;
             }
             else if(rxData[0] == CAN_PE_DISCONNECTED)
             {
                 if (Global_u8IgnoreResponse != CAN_ANCHOR_1) {
-                    APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR);
+                    APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR, Global_u8CurrentDeviceId);
                 }
                 break;
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
             {
-                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS, Global_u8CurrentDeviceId);
                 break;
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                APP_voidFSMHandler(EVENT_HANDOVER_FAILED, Global_u8CurrentDeviceId);
+                break;
+            }
+            else if(rxData[0] == CAN_RSSI_MODE){
+                Global_u8CurrentNvmIndex = rxData[3];
                 break;
             }
 
             break;
-
+        }
         case CAN_ID_STATUS_A2:
+        {
             snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\nReceived Status: %s\r\n", CAN_statusStr[rxData[0]]);
             UART_SendMessage(gArr_DebugMsg);
             if (rxData[0] == CAN_PE_SUCCESS)
             {
-                APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
+                Global_u8CurrentDeviceId = rxData[2];
+                APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL, Global_u8CurrentDeviceId);
                 break;
             }
             else if(rxData[0] == CAN_PE_DISCONNECTED)
             {
                 if (Global_u8IgnoreResponse != CAN_ANCHOR_2) {
-                    APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR);
+                    APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR, Global_u8CurrentDeviceId);
                 }
                 break;
 
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
             {
-                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS, Global_u8CurrentDeviceId);
                 break;
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                APP_voidFSMHandler(EVENT_HANDOVER_FAILED, Global_u8CurrentDeviceId);
                 break;
             }
             break;
-
+        }
         case CAN_ID_STATUS_A3:
+        {
             snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\nReceived Status: %s\r\n", CAN_statusStr[rxData[0]]);
             UART_SendMessage(gArr_DebugMsg);
             if (rxData[0] == CAN_PE_SUCCESS)
             {
-                APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL);
+                Global_u8CurrentDeviceId = rxData[2];
+                APP_voidFSMHandler(EVENT_SECONDARY_PE_SUCCESSFUL, Global_u8CurrentDeviceId);
                 break;
             }
             else if(rxData[0] == CAN_PE_DISCONNECTED)
             {
                 if (Global_u8IgnoreResponse != CAN_ANCHOR_3) {
-                    APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR);
+                    APP_voidFSMHandler(EVENT_DEVICE_DISCONNECTED_FROM_SECONDARY_ANCHOR, Global_u8CurrentDeviceId);
                 }
                 break;
 
             }
             else if(rxData[0] == CAN_HANDOVER_SUCCESS)
             {
-                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS);
+                APP_voidFSMHandler(EVENT_HANDOVER_SUCCESS, Global_u8CurrentDeviceId);
                 break;
             }
             else if(rxData[0] == CAN_HANDOVER_FAILED)
             {
-                APP_voidFSMHandler(EVENT_HANDOVER_FAILED);
+                APP_voidFSMHandler(EVENT_HANDOVER_FAILED, Global_u8CurrentDeviceId);
                 break;
             }
             break;
-
+        }
         /* Wake-up notification messages ---------------------------------- */
         case CAN_ID_WAKEUP_NOTIFICATION_A1:
         if(Global_u8ResetAndPE){
@@ -240,12 +252,11 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         if(Global_u8IgnoreResponse != CAN_ANCHOR_1){
             Global_u8IgnoreResponse = 0;
             if(currentState == STATE_IDLE){
-                currentState = STATE_PRIMARY_PE;
-                Global_u8CurrentDeviceId = 0;
+                currentState = STATE_START_CS_STATE;
                 Global_u8SendPE = 1;
                 break;
             }
-            APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED);
+            APP_voidFSMHandler(EVENT_PRIMARY_WAKEUP_RECEIVED, Global_u8CurrentDeviceId);
         }
          else{
                Global_u8IgnoreResponse = 0;
@@ -258,7 +269,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         }
          if(Global_u8IgnoreResponse != CAN_ANCHOR_2){
             Global_u8IgnoreResponse = 0;
-            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED, Global_u8CurrentDeviceId);
          }
          else{
                Global_u8IgnoreResponse = 0;
@@ -272,7 +283,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         }
          if(Global_u8IgnoreResponse != CAN_ANCHOR_3){
             Global_u8IgnoreResponse = 0;
-            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED);
+            APP_voidFSMHandler(EVENT_SECONDARY_WAKEUP_RECEIVED, Global_u8CurrentDeviceId);
          }
          else{
             Global_u8IgnoreResponse = 0;
@@ -389,7 +400,7 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
             /* aIrk[8..15] */
             memcpy(&s_addDeviceData.aIrk[8], rxData, 8);
             UART_SendMessage ("Bonding data fully received.\r\n");
-            APP_voidFSMHandler(EVENT_BONDING_DATA_RECEIVED);
+            APP_voidFSMHandler(EVENT_BONDING_DATA_RECEIVED, s_addDeviceData.nvmIndex);
             s_bondingDataCounter = 0;
             isBondingDataReceived=1;
             break;
@@ -449,5 +460,5 @@ static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
         UART_SendMessage(gArr_DebugMsg);
     }
     /* Trigger an event if needed */
-    APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE);
+    APP_voidFSMHandler(EVENT_RECEIVE_DISTANCE, Loc_u8DeviceId);
 }
