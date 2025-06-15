@@ -25,7 +25,11 @@ extern APP_tenuRangingType Global_u8DevicesRangingType[APP_MAX_NO_OF_DEVICES];
 static void APP_voidInitRangingTypes(){
     uint8_t Loc_u8Devices;
     for (Loc_u8Devices = 0; Loc_u8Devices < APP_MAX_NO_OF_DEVICES; Loc_u8Devices++) {
-        Global_u8DevicesRangingType[Loc_u8Devices] = DeviceStateManager_Load(Loc_u8Devices);
+        int8_t Loc_u8RangingType = DeviceStateManager_Load(Loc_u8Devices);
+        if(Loc_u8RangingType == -1)
+            Global_u8DevicesRangingType[Loc_u8Devices] = APP_NOT_DETERMINED;
+        else
+            Global_u8DevicesRangingType[Loc_u8Devices] = (APP_tenuRangingType)Loc_u8RangingType;
     }
 }
 void APP_voidSystemInit(){ 

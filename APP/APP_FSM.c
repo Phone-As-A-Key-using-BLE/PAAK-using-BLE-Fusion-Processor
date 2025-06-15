@@ -341,9 +341,13 @@ static void FSM_voidHandleStartCsState(APP_tenuEvents Copy_enuEvent, uint8_t Cop
     if (Copy_enuEvent == EVENT_PRIMARY_PE_SUCCESSFUL) {
         currentState = STATE_PRIMARY_TDM;
         snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
-                "\n[SUCCESS] Device %d Connected with CS!. Trigger distance measurement...\n", 
+                "\n[SUCCESS] Device %d Connected supports CS!. Trigger distance measurement...\n", 
                 Global_u8CurrentDeviceId);
         UART_SendMessage(gArr_DebugMsg);
+        // Store friend device ranging type
+        if(Global_u8DevicesRangingType[Global_u8CurrentNvmIndex] == APP_NOT_DETERMINED){
+            DeviceStateManager_Update(Global_u8CurrentNvmIndex, APP_CS);
+        }
         CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
     }
     else if (Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR) {
@@ -367,9 +371,13 @@ static void FSM_voidHandleStartRSSIState(APP_tenuEvents Copy_enuEvent, uint8_t C
     if (Copy_enuEvent == EVENT_PRIMARY_PE_SUCCESSFUL) {
         currentState = STATE_PRIMARY_TDM;
         snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
-                "\n[SUCCESS] Device %d Connected with RSSI!. Trigger distance measurement...\n", 
+                "\n[SUCCESS] Device %d Connected supports RSSI!. Trigger distance measurement...\n", 
                 Global_u8CurrentDeviceId);
         UART_SendMessage(gArr_DebugMsg);
+        // Store friend device ranging type
+        if(Global_u8DevicesRangingType[Global_u8CurrentNvmIndex] == APP_NOT_DETERMINED){
+            DeviceStateManager_Update(Global_u8CurrentNvmIndex, APP_RSSI);
+        }
         CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, CAN_PRIMARY_ANCHOR, Copy_u8DeviceId);
     }
     else if (Copy_enuEvent == EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR) {
