@@ -39,6 +39,11 @@
 #define CAN_IS_VALID_ANCHOR(id)         ((id) < CAN_ANCHOR_MAX)
 
 
+#define VERIFIER_TOTAL_SIZE_BYTES     117
+#define VERIFIER_FRAME_COUNT          16
+#define VERIFIER_FRAME_DATA_SIZE      7
+#define VERIFIER_LAST_FRAME_DATA_SIZE 6
+
 /* Function Prototypes */
 
 /**
@@ -58,7 +63,8 @@ void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Hando
  */
 void CAN_voidSendRangingType(APP_tenuRangingType* Add_enuRangingType);
 
-void CAN_voidSendVerifiers(uint8_t Copy_u8Device, VehicleVerifiers_t* Add_structVerifiers);
+void CAN_voidSendVerifiers();
 
-void CAN_voidSendCertificate(uint8_t Copy_u8Device,uint8_t Copy_u8CertificateType, uint16_t Copy_u16Size, uint8_t * Add_u8Certificate);
+void CAN_voidSendPkCertificate();
+void CAN_voidSendNextVerifierFrame(void);
 #endif /* CAN_SEND_H_ */
