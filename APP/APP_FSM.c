@@ -21,7 +21,6 @@
 #include "APP/Timer.h"
 #include "APP/ErrorHandling.h"
 #include "APP/Connectivity/connectivity.h"
-#include "ccc_keys.h"
 // Fusion algorithms
 #include "APP/Fusion/Trilateration.h"
 #include "APP/Fusion/Particle.h"
@@ -98,6 +97,8 @@ static uint8_t FSM_u8FindNextAnchor(void);
 static void FSM_voidLogAnchorMessage(const char* Copy_pchLevel, const char* Copy_pchMessage, uint8_t Copy_u8Anchor);
 static void FSM_voidHandleIdleState(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleTriggerOwnerPairing(APP_tenuEvents Copy_enuEvent);
+static void FSM_voidHandleWaitingForVerifiers(APP_tenuEvents Copy_enuEvent);
+
 static void FSM_voidHandleWaitingForBondingData(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleWaitingForPrimaryWakeup(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandleCSPrimaryPE(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
@@ -245,11 +246,35 @@ static void FSM_voidHandleTriggerOwnerPairing(APP_tenuEvents Copy_enuEvent) {
         Global_u8FirstTime = 1;
         Global_u8PERetryCount = 0;
         
-        currentState = STATE_WAITING_FOR_BONDING_DATA;
-        UART_SendMessage("\n[SUCCESS] Primary anchor wakeup received. Trigger owner pairing on primary anchor...\n");
-        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_OWNER_PAIRING, CAN_PRIMARY_ANCHOR, 0);
+        currentState = STATE_WAITING_FOR_VERIFIERS;
+        UART_SendMessage("\n[SUCCESS] Primary anchor wakeup received. Request verifiers from server...\n");
+        Connectivity_voidRequestVerifiers();
     }
 }
+
+static void FSM_voidHandleWaitingForVerifiers(APP_tenuEvents Copy_enuEvent){
+    if (Copy_enuEvent == EVENT_VERIFIERS_RECEIVED) {
+        UART_SendMessage("\n[SUCCESS] Verifiers received. Sending verifiers to primary anchor...\n");
+        CAN_voidSendVerifiers();
+    }
+    if(Copy_enuEvent == EVENT_VERIFIERS_SENT_TO_PRIMARY_ANCHOR){
+        UART_SendMessage("\n[SUCCESS] Verifiers received. Sending verifiers to primary anchor...\n");
+        Connectivity_voidRequestCertificate();
+    }
+}
+
+static void FSM_voidHandleWaitingForPkCertificate(APP_tenuEvents Copy_enuEvent){
+    if (Copy_enuEvent == EVENT_CERTIFICATE_RECEIVED) {
+        UART_SendMessage("\n[SUCCESS] Certificate received. Sending certificate to primary anchor...\n");
+        CAN_voidSendPkCertificate();
+    }
+    if(Copy_enuEvent == EVENT_CERTIFICATE_SENT_TO_PRIMARY_ANCHOR){
+        UART_SendMessage("\n[SUCCESS] Verifiers received. Sending verifiers to primary anchor...\n");
+        currentState = STATE_WAITING_FOR_PK_CERTIFICATE;
+        Connectivity_voidRequestCertificate();
+    }
+}
+
 
 /**
  * @brief Handle waiting for bonding data state
@@ -749,6 +774,14 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
             FSM_voidHandleTriggerOwnerPairing(Copy_enuEvent);
             break;
 
+        case STATE_WAITING_FOR_VERIFIERS:
+            FSM_voidHandleWaitingForVerifiers(Copy_enuEvent);
+            break;
+
+        case STATE_WAITING_FOR_PK_CERTIFICATE:
+            FSM_voidHandleWaitingForPkCertificate(Copy_enuEvent);
+            break;
+        
         case STATE_WAITING_FOR_BONDING_DATA:
             FSM_voidHandleWaitingForBondingData(Copy_enuEvent);
             break;

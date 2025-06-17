@@ -20,6 +20,8 @@
 
 #include "can_msg_types.h"
 #include "CAN_Send.h"
+#include "driverlib/sysctl.h"
+#include "vehicle.h"
 
 extern uint8_t Global_u8CurrentNvmIndex;
 extern APP_tenuStates currentState;
@@ -210,20 +212,52 @@ void CAN_voidSendCertificate(uint8_t Copy_u8Device,uint8_t Copy_u8CertificateTyp
     UART_SendMessage("==============================\n");
 }
 
-void CAN_voidSendVerifiers(uint8_t Copy_u8Device, VehicleVerifiers_t* Add_structVerifiers) {
-    uint8_t* rawData = (uint8_t*)Add_structVerifiers;
+uint8_t g_verifierSendIndex = 0;
+const uint8_t* g_verifierRawData = NULL;
+bool g_verifierSendingActive = false;
+
+void CAN_voidSendVerifiers(void) {
+    g_verifierRawData = (const uint8_t*)&Global_u8VehicleInfo.verifiers;
+    g_verifierSendIndex = 0;
+    g_verifierSendingActive = true;
+    CAN_voidSendNextVerifierFrame();
+}
+
+void CAN_voidSendNextVerifierFrame(void) {
+    if (!g_verifierSendingActive || g_verifierSendIndex >= VERIFIER_FRAME_COUNT)
+        return;
+
+    uint8_t frameData[8];
+    frameData[0] = g_verifierSendIndex;
+
+    uint8_t bytesToCopy = (g_verifierSendIndex == (VERIFIER_FRAME_COUNT - 1)) ?
+                          VERIFIER_LAST_FRAME_DATA_SIZE : VERIFIER_FRAME_DATA_SIZE;
+
+    memcpy(&frameData[1], &g_verifierRawData[g_verifierSendIndex * VERIFIER_FRAME_DATA_SIZE], bytesToCopy);
+
+    // Optional zero-fill remaining bytes
+    if (bytesToCopy < VERIFIER_FRAME_DATA_SIZE) {
+        memset(&frameData[1 + bytesToCopy], 0, VERIFIER_FRAME_DATA_SIZE - bytesToCopy);
+    }
+
+    CAN_voidSendMsg(CAN_ID_VERIFIERS, frameData);
+}
+
+
+
+void CAN_voidSendPkCertificate() {
+    uint8_t* rawData = (uint8_t*)&Global_u8VehicleInfo.vehiclePublicKeyCeritificate;
     uint8_t frameData[8];
     uint8_t i;
     for (i = 0; i < 15; i++) {
         frameData[0] = i; // frame index
         memcpy(&frameData[1], &rawData[i * 7], 7);
-        CAN_voidSendMsg(CAN_ID_VERIFIERS, frameData);
+        CAN_voidSendMsg(CAN_ID_CERTIFICATE, frameData);
     }
 
     // Final frame (frame 15): remaining 6 bytes
     frameData[0] = 15;
     memcpy(&frameData[1], &rawData[15 * 7], 6); // last 6 bytes
-    CAN_voidSendMsg(CAN_ID_VERIFIERS, frameData);
+    CAN_voidSendMsg(CAN_ID_CERTIFICATE, frameData);
 }
-
 

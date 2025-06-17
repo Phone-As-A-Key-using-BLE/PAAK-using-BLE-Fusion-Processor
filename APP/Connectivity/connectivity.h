@@ -1,137 +1,96 @@
 /*
-
-Author: ABDELRAHMAN
-
+ * File: connectivity.h
+ * Author: Mohamed Abdel Hamid
+           Ahmed Abdelrahman
+           Ahmed Helal
+           Abdelrahman Hassan
+ * Description: Header file for vehicle connectivity communication over UART.
  */
 
 #ifndef CONNECTIVITY_H
 #define CONNECTIVITY_H
-#include "stdint.h"
-#include "UART/uart.h"
+
 #include <stdint.h>
-/*******************************************************************************
- * Definitions
- ******************************************************************************/
+#include <stdbool.h>
+#include "UART/uart.h"  // UART driver
 
-// UART Configuration
-#define UART_BAUD_RATE 9600
-#define SERIAL_MONITOR_BAUD_RATE 115200
-#define UART_TIMEOUT 1000  // Timeout for UART communication in milliseconds
+/******************************************************************************/
+/*                               Configuration Macros                         */
+/******************************************************************************/
 
+#define UART_BAUD_RATE              9600       // UART baud rate
+#define UART_TIMEOUT                1000       // Timeout in milliseconds
 
-// UART Start and End Bytes
-#define UART_START_BYTE 0x0F
-#define UART_END_BYTE 0xFF
-#define UART_ACK_BYTE 0xAA
-#define MAX_BUFFER_SIZE 256
+#define CONNECTIVITY_START_BYTE     0x0F       // Start byte for UART framing
+#define CONNECTIVITY_END_BYTE       0xFF       // End byte for UART framing
+#define CONNECTIVITY_ACK_BYTE       0xAA       // Acknowledgement byte
+#define MAX_BUFFER_SIZE             256        // Max UART payload size
 
-/***********************************************
-  Enums
- ***********************************************/
-// Vehicle alert enum
-typedef enum VehicleAlert_t {
-  ENGINE_OVERHEAT = 0xF0,
-  DOOR_UNLOCKED,
-  DOOR_LOCKED,
-  TIRE_PRESSURE_LOW
-} VehicleAlert_t;
+/******************************************************************************/
+/*                                  Enums                                     */
+/******************************************************************************/
 
-// Message Types
-typedef enum
-{
-    MSG_TYPE_VEHICLE_STATE = 0x01,  // Vehicle state message
-    MSG_TYPE_ALERT,          // Alert message
-    MSG_TYPE_PK_VEHICLE_CERTIFICATE,   // Certificates message
-    MSG_TYPE_REGISTRATION,   // Registration message
-    MSG_TYPE_COMMAND         // Command message
-} VehicleMessageType_t;
+// Message types for UART communication
+typedef enum {
+    MSG_TYPE_REQUEST_VERIFIERS,         // Request Verifiers
+    MSG_TYPE_PK_VEHICLE_CERTIFICATE,    // Certificate/public key exchange
+    MSG_TYPE_VEHICLE_STATE,             // State update from vehicle
+    MSG_TYPE_ALERT,                     // Alert notification
+    MSG_TYPE_COMMAND                    // Command execution
+} CONNECTIVITY_tenuVehicleMsgType;
 
-// Command Identifiers
-typedef enum
-{
+// Vehicle alert types
+typedef enum {
+    ENGINE_OVERHEAT = 0xF0,
+    DOOR_UNLOCKED,
+    DOOR_LOCKED,
+    TIRE_PRESSURE_LOW
+} CONNECTIVITY_tenuVehicleAlert;
+
+// Command identifiers for vehicle control
+typedef enum {
     CMD_START_ENGINE_BYTE = 0x10,
     CMD_STOP_ENGINE_BYTE,
 
     CMD_ENABLE_AC_BYTE,
     CMD_DISABLE_AC_BYTE,
 
-    CMD_LOCK_ALL_DOORS_BYTE ,
-    CMD_UNLOCK_ALL_DOORS_BYTE ,
-    CMD_LOCK_FRONT_LEFT_DOOR_BYTE ,
-    CMD_UNLOCK_FRONT_LEFT_DOOR_BYTE ,
-    CMD_LOCK_FRONT_RIGHT_DOOR_BYTE ,
-    CMD_UNLOCK_FRONT_RIGHT_DOOR_BYTE ,
-    CMD_LOCK_REAR_LEFT_DOOR_BYTE ,
-    CMD_UNLOCK_REAR_LEFT_DOOR_BYTE ,
-    CMD_LOCK_REAR_RIGHT_DOOR_BYTE ,
-    CMD_UNLOCK_REAR_RIGHT_DOOR_BYTE ,
+    CMD_LOCK_ALL_DOORS_BYTE,
+    CMD_UNLOCK_ALL_DOORS_BYTE,
+    CMD_LOCK_FRONT_LEFT_DOOR_BYTE,
+    CMD_UNLOCK_FRONT_LEFT_DOOR_BYTE,
+    CMD_LOCK_FRONT_RIGHT_DOOR_BYTE,
+    CMD_UNLOCK_FRONT_RIGHT_DOOR_BYTE,
+    CMD_LOCK_REAR_LEFT_DOOR_BYTE,
+    CMD_UNLOCK_REAR_LEFT_DOOR_BYTE,
+    CMD_LOCK_REAR_RIGHT_DOOR_BYTE,
+    CMD_UNLOCK_REAR_RIGHT_DOOR_BYTE,
 
-    CMD_LOCK_BONNET_BYTE ,
-    CMD_UNLOCK_BONNET_BYTE ,
-    CMD_LOCK_TRUNK_BYTE ,
-    CMD_UNLOCK_TRUNK_BYTE ,
+    CMD_LOCK_BONNET_BYTE,
+    CMD_UNLOCK_BONNET_BYTE,
+    CMD_LOCK_TRUNK_BYTE,
+    CMD_UNLOCK_TRUNK_BYTE,
 
-    CMD_ENABLE_IMMOBILIZER_BYTE ,
+    CMD_ENABLE_IMMOBILIZER_BYTE,
     CMD_DISABLE_IMMOBILIZER_BYTE,
 
-    CMD_REQUEST_VERIFIER ,
-
     CMD_TERMINATE_USER_BYTE
+} CONNECTIVITY_tenuVehicleCommand;
 
-} VehicleCommand_t;
+/******************************************************************************/
+/*                                  Structs                                   */
+/******************************************************************************/
 
-// Vehicle status structure
-typedef struct VehicleStates_t {
-    bool engineState;
-    uint8_t batteryLevel;
-    bool doorsLocked;
-    bool acState;
-    uint8_t tirePSI;
-} VehicleStates_t;
-
-
+// Main UART message structure
 typedef struct {
-    uint8_t p[2];
-    uint8_t r[2];
-    uint8_t n[4];
-    uint8_t salt[16];
-    uint8_t w0[32];
-    uint8_t L[64];               // Command type (e.g., send certificate, status, etc.)
-}VehicleVerifiers_t ;
+    CONNECTIVITY_tenuVehicleMsgType msg_type;    // Type of message
+    uint8_t data[MAX_BUFFER_SIZE];               // Optional data buffer
+    uint16_t data_len;                           // Length of valid data
+} CONNECTIVITY_tstructMsgHandle;
 
-//typedef struct {
-//    uint32_t issueDate;            // Issue date of the certificate
-//    uint32_t expirationDate;       // Expiration date of the certificate
-//    uint16_t modelYear;            // Year of manufacture
-//    uint8_t certificateID;
-//    uint8_t vehicleMake[8];          // Vehicle make (e.g., Tesla, BMW)
-//    uint8_t vehicleModel[16];         // Vehicle model (e.g., Model S, X5)
-//    uint8_t publicKey[16];        // Public key for encryption
-//    uint8_t signature[16];        // Digital signature for certificate verification
-//} VehicleCertificate_t;
-
-
-// UART communication message structure
-typedef struct {
-    VehicleMessageType_t msg_type;
-    VehicleCommand_t command;               // Command type (e.g., send certificate, status, etc.)
-    VehicleStates_t states;
-    VehicleAlert_t alert;
-    uint8_t data[MAX_BUFFER_SIZE];
-    uint16_t data_len;
-    VehicleVerifiers_t verifier;
-}CONNECTIVITY_Message_t ;
-
-/*******************************************************************************
- * Variables
- ******************************************************************************/
-
-/***********************************************
-  Function Prototypes
- ***********************************************/
-void CONNECTIVITY_SendHandleMessage(uint8_t *buffer, CONNECTIVITY_Message_t *msg);
-CONNECTIVITY_Message_t CONNECTIVITY_ReceiveData();
-void CONNECTIVITY_SendData(CONNECTIVITY_Message_t *message);
-void CONNECTIVITY_ReceiveHandleMessage(uint8_t *buffer, CONNECTIVITY_Message_t *msg);
-void CONNECTIVITY_callback(CONNECTIVITY_Message_t *msg);
+/******************************************************************************/
+/*                              Function Prototypes                           */
+/******************************************************************************/
+void Connectivity_voidRequestVerifiers(void);
+void Connectivity_voidRequestCertificate(void);
 #endif /* CONNECTIVITY_H */

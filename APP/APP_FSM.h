@@ -2,11 +2,11 @@
  * APP_FSM.h
  *
  *  Created on: Feb 27, 2025
- *      Author: 
+ *      Author: Mohamed Abdel Hamid
  */
 
-#ifndef APP_APP_FSM_H_
-#define APP_APP_FSM_H_
+#ifndef APP_FSM_H_
+#define APP_FSM_H_
 
 #define MAX_PE_RETRIES 3  // User-defined max retries for PE
 #define MAX_HANDOVER_RETRIES 5
@@ -37,7 +37,9 @@ typedef enum {
     EVENT_OWNER_PAIRING_BUTTON_PRESSED,
     EVENT_SEND_OWNER_PAIRING_COMMAND,
     EVENT_VERIFIERS_RECEIVED,
+    EVENT_VERIFIERS_SENT_TO_PRIMARY_ANCHOR,
     EVENT_CERTIFICATE_RECEIVED,
+    EVENT_CERTIFICATE_SENT_TO_PRIMARY_ANCHOR,
     EVENT_BONDING_DATA_RECEIVED,
     EVENT_PRIMARY_PE_SUCCESSFUL,
     EVENT_DEVICE_DISCONNECTED_FROM_PRIMARY_ANCHOR,
@@ -75,5 +77,10 @@ typedef enum {
 #define TIMEOUT_DISCONNECT                  500
 #define TIMEOUT_HANDOVER                    1000
 
+// Connectivity
+#define APP_VEHICLE_PK_CERTIFICATE_SIZE     180
+#define APP_VEHICLE_VERIFIERS_SIZE          117    
+
 void APP_voidFSMHandler(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
-#endif /* APP_APP_FSM_H_ */
+
+#endif /* APP_FSM_H_ */

@@ -11,12 +11,15 @@
 #include "CAN_MasterReceive.h"
 #include "CAN_App.h"
 #include "sys/cdefs.h"
+#include "CAN_Send.h"
 
 extern uint8_t Global_u8CurrentAnchor; // Temp Solution
 extern uint8_t Global_u8DevicesRangingType [APP_MAX_NO_OF_DEVICES];
 extern uint8_t Global_u8IgnoreResponse;
 extern uint8_t Global_u8CurrentNvmIndex;
-
+extern uint8_t g_verifierSendIndex;
+extern const uint8_t* g_verifierRawData;
+extern bool g_verifierSendingActive;
 /* ---------------------------------------------------------------------------
  * Data structures mirroring NXP-based variables
  * ---------------------------------------------------------------------------*/
@@ -110,9 +113,9 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
     switch (messageId)
     {
         case CAN_ID_BONDING_DATA:
-            if(!isBondingDataReceived){
+            if(currentState == STATE_WAITING_FOR_BONDING_DATA)
                 parseBondingData(pRxMsg, rxData);
-            }
+        
             break;
 
         /* Distance messages ---------------------------------------------- */
@@ -150,8 +153,10 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         /* PE Status messages --------------------------------------------- */
         case CAN_ID_STATUS_A1:
         {
-            snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Received Status: %s\r\n", CAN_statusStr[rxData[0]]);
-            UART_SendMessage(gArr_DebugMsg);
+            if(rxData[0] != CAN_VERIFIERS_OK && rxData[0] != CAN_CERTIFICATES_OK){
+                snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "\n[INFO] Received Status: %s\r\n", CAN_statusStr[rxData[0]]);
+                UART_SendMessage(gArr_DebugMsg);
+            }
             if (rxData[0] == CAN_PE_SUCCESS)
             {
                 Global_u8CurrentNvmIndex = rxData[3];
@@ -178,6 +183,19 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
             }
             else if(rxData[0] == CAN_RSSI_MODE){
                 Global_u8CurrentNvmIndex = rxData[3];
+                break;
+            }
+            else if(rxData[0] == CAN_VERIFIERS_OK){
+                if (g_verifierSendingActive && g_verifierSendIndex < VERIFIER_FRAME_COUNT) {
+                    g_verifierSendIndex++;
+                    CAN_voidSendNextVerifierFrame();
+                }
+
+                // Done?
+                if (g_verifierSendIndex >= VERIFIER_FRAME_COUNT) {
+                    g_verifierSendingActive = false;
+                    APP_voidFSMHandler(EVENT_VERIFIERS_SENT_TO_PRIMARY_ANCHOR, Global_u8CurrentDeviceId);
+                }
                 break;
             }
 
