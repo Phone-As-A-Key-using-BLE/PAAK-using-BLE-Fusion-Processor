@@ -50,19 +50,19 @@ void APP_voidSystemInit(){
 }
 
 void APP_voidCommandsHandler(){
-    if(Global_u8SendPE){
+    if(Global_u8SendPE == 1){
         __asm(" CPSID I \n");
         Global_u8SendPE = 0;
         CAN_voidSendCommand(CAN_COMMAND_TRIGGER_PASSIVE_ENTRY, Global_u8NextAnchor, Global_u8CurrentDeviceId);
         __asm(" CPSIE I \n");
     }
-    if(Global_u8SendTDM){
+    if(Global_u8SendTDM == 1){
         __asm(" CPSID I\n");
         Global_u8SendTDM = 0;
         CAN_voidSendCommand(CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);      
         __asm(" CPSIE I \n");
     }
-    if(Global_u8SendHandover){
+    if(Global_u8SendHandover == 1){
         __asm(" CPSID I \n");
         Global_u8SendHandover = 0;
         CAN_voidSendHandoverCommand(Global_u8CurrentAnchor, Global_u8NextAnchor, Global_u8CurrentDeviceId);

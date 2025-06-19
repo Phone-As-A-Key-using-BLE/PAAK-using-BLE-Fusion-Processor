@@ -78,8 +78,12 @@ typedef enum {
 #define TIMEOUT_HANDOVER                    1000
 
 // Connectivity
-#define APP_VEHICLE_PK_CERTIFICATE_SIZE     180
-#define APP_VEHICLE_VERIFIERS_SIZE          117    
+#define APP_VEHICLE_PK_CERTIFICATE_SIZE     474
+#define APP_VEHICLE_PK_SIZE                 181
+#define APP_VEHICLE_VERIFIERS_SIZE          117  
+
+// Debug
+#define APP_DEBUG_ARRAY_MAX_SIZE            256
 
 void APP_voidFSMHandler(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 

@@ -28,7 +28,7 @@
 /*==================== GLOBAL VARIABLES ====================*/
 
 /* Debug message buffer for UART communication */
-char gArr_DebugMsg[1024];
+char gArr_DebugMsg[APP_DEBUG_ARRAY_MAX_SIZE];
 
 /* Current FSM state */
 APP_tenuStates currentState = STATE_IDLE;
@@ -258,8 +258,11 @@ static void FSM_voidHandleWaitingForVerifiers(APP_tenuEvents Copy_enuEvent){
         CAN_voidSendVerifiers();
     }
     if(Copy_enuEvent == EVENT_VERIFIERS_SENT_TO_PRIMARY_ANCHOR){
-        UART_SendMessage("\n[SUCCESS] Verifiers received. Sending verifiers to primary anchor...\n");
-        Connectivity_voidRequestCertificate();
+        UART_SendMessage("\n[SUCCESS] Verifiers sent to primary anchor. requesting certificate...\n");
+        currentState = STATE_WAITING_FOR_BONDING_DATA;
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_OWNER_PAIRING, CAN_PRIMARY_ANCHOR, 0);
+        // currentState = STATE_WAITING_FOR_PK_CERTIFICATE;
+        // Connectivity_voidRequestCertificate();
     }
 }
 
@@ -269,9 +272,9 @@ static void FSM_voidHandleWaitingForPkCertificate(APP_tenuEvents Copy_enuEvent){
         CAN_voidSendPkCertificate();
     }
     if(Copy_enuEvent == EVENT_CERTIFICATE_SENT_TO_PRIMARY_ANCHOR){
-        UART_SendMessage("\n[SUCCESS] Verifiers received. Sending verifiers to primary anchor...\n");
-        currentState = STATE_WAITING_FOR_PK_CERTIFICATE;
-        Connectivity_voidRequestCertificate();
+        UART_SendMessage("\n[SUCCESS] Certificare sent to primary anchor. start advertising on primary anchor...\n");
+        currentState = STATE_WAITING_FOR_BONDING_DATA;
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_OWNER_PAIRING, CAN_PRIMARY_ANCHOR, 0);
     }
 }
 

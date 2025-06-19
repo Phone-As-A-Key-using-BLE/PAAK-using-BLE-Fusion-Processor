@@ -40,9 +40,9 @@
 
 
 #define VERIFIER_TOTAL_SIZE_BYTES     117
-#define VERIFIER_FRAME_COUNT          16
+#define VERIFIER_FRAME_COUNT          17
 #define VERIFIER_FRAME_DATA_SIZE      7
-#define VERIFIER_LAST_FRAME_DATA_SIZE 6
+#define VERIFIER_LAST_FRAME_DATA_SIZE 5
 
 /* Function Prototypes */
 

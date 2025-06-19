@@ -39,7 +39,7 @@ extern uint8_t Global_u8SendHandover;
 extern uint8_t Global_u8CurrentDeviceId;
 
 /* Debug print buffer */
-extern char gArr_DebugMsg[1024];
+extern char gArr_DebugMsg[APP_DEBUG_ARRAY_MAX_SIZE];
 
 extern APP_tenuStates currentState;
 

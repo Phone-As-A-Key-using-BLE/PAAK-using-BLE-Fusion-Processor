@@ -11,17 +11,14 @@
 #include "APP/CAN_Send.h"
 #include "vehicle.h"
 /*==================== GLOBAL VARIABLES ====================*/
-
-CONNECTIVITY_tstructMsgHandle g_receivedMessage;
 extern uint8_t Global_u8CurrentDeviceId;
-extern char gArr_DebugMsg[1024];
+extern char gArr_DebugMsg[APP_DEBUG_ARRAY_MAX_SIZE];
 
 /*==================== PRIVATE FUNCTION DECLARATIONS ====================*/
 /**
  * @brief Sends a full vehicle message over UART
- * @param msg Pointer to the message structure to send
  */
-static void CONNECTIVITY_voidSendHandleMessage(CONNECTIVITY_tstructMsgHandle *msg);
+static void CONNECTIVITY_voidSendHandleMessage(void);
 
 /**
  * @brief Sends raw UART data from a message structure
@@ -41,12 +38,34 @@ static void CONNECTIVITY_voidReceiveHandleMessage(CONNECTIVITY_tstructMsgHandle 
  */
 static void CONNECTIVITY_voidCallback(CONNECTIVITY_tstructMsgHandle *msg);
 
-/*==================== PRIVATE FUNCTION IMPLEMENTATIONS ====================*/
+/**
+ * @brief Validate received data length against specs
+ * @param Copy_enuMsgType Received msg type
+ * @param Copy_u16DataLength Data length
+ */
+static bool CONNECTIVITY_bValidateDataLength(CONNECTIVITY_tenuVehicleMsgType Copy_enuMsgType, uint16_t Copy_u16DataLength);
 
+/**
+ * @brief Sends a resend request for the vehicle's verifier [not requesting from server].
+ * @usage When there is error in transmitting data from connectivity to fusion through UART         
+ */
+static void Connectivity_voidResend(CONNECTIVITY_tenuVehicleMsgType Copy_enuMsgType);
+
+/*==================== PRIVATE FUNCTION IMPLEMENTATIONS ====================*/
+CONNECTIVITY_tstructMsgHandle g_receivedMessage;
 void UART1_Handler(void) {
-    static uint16_t uart_rx_index = 0;
-    static bool startDetected = false;
-    uint8_t error = 0;
+    static enum {
+        STATE_WAIT_TYPE,
+        STATE_WAIT_LENGTH_1,
+        STATE_WAIT_LENGTH_2,
+        STATE_RECEIVING_DATA
+    } uart_state = STATE_WAIT_TYPE;
+
+    static CONNECTIVITY_tenuVehicleMsgType msg_type;
+    static uint16_t expected_len = 0;
+    static uint16_t received_len = 0;
+    static uint8_t error = 0;
+
     uint32_t status = UARTIntStatus(UART1_BASE, true);
     UARTIntClear(UART1_BASE, status);
 
@@ -54,56 +73,91 @@ void UART1_Handler(void) {
         while (UARTCharsAvail(UART1_BASE)) {
             uint8_t recChar = (uint8_t)UARTCharGetNonBlocking(UART1_BASE);
 
-            if (!startDetected) {
-                if (recChar == CONNECTIVITY_START_BYTE) {
-                    startDetected = true;
-                    uart_rx_index = 0;
-                }
-                continue;  // Skip everything until start byte is seen
-            }
+            switch (uart_state) {
+                case STATE_WAIT_TYPE:
+                    msg_type = (CONNECTIVITY_tenuVehicleMsgType) recChar;
+                    uart_state = STATE_WAIT_LENGTH_1;
+                    break;
 
-            if (recChar == CONNECTIVITY_END_BYTE) {
-                g_receivedMessage.data_len = uart_rx_index - 1; // Exclude msg type
-                if(g_receivedMessage.data[0] == MSG_TYPE_REQUEST_VERIFIERS){
-                    if(g_receivedMessage.data_len == APP_VEHICLE_VERIFIERS_SIZE){
-                        CONNECTIVITY_voidReceiveHandleMessage(&g_receivedMessage);
-                        CONNECTIVITY_voidCallback(&g_receivedMessage);
-                        error = 0
-;                    }
-                    else {
-                       error = 1;
+                case STATE_WAIT_LENGTH_1:
+                    expected_len = recChar;
+                    uart_state = STATE_WAIT_LENGTH_2;
+                    break;
+
+                case STATE_WAIT_LENGTH_2:
+                    expected_len |= ((uint16_t)recChar << 8);
+
+                    if (expected_len > MAX_BUFFER_SIZE) {
+                        error = 1;
+                        Connectivity_voidResend(msg_type);
+                        uart_state = STATE_WAIT_TYPE;
+                        break;
                     }
-                }
-                else{
-                    CONNECTIVITY_voidReceiveHandleMessage(&g_receivedMessage);
-                    CONNECTIVITY_voidCallback(&g_receivedMessage);
-                }
-                uart_rx_index = 0;
-                startDetected = false;
-                continue;  // Don't store end byte
-            }
 
-            if (uart_rx_index < MAX_BUFFER_SIZE) {
-                // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
-                // "\nReceived value: %c...\n", 
-                // (char)recChar);
-                // UART_SendMessage(gArr_DebugMsg);
-                g_receivedMessage.data[uart_rx_index++] = recChar;
-            } else {
-                // Overflow: reset
-                uart_rx_index = 0;
-                startDetected = false;
+                    received_len = 0;
+                    uart_state = STATE_RECEIVING_DATA;
+                    break;
+
+                case STATE_RECEIVING_DATA:
+                    g_receivedMessage.data[received_len++] = recChar;
+
+                    if (received_len == expected_len) {
+                        g_receivedMessage.msg_type = (CONNECTIVITY_tenuVehicleMsgType)msg_type;
+                        g_receivedMessage.data_len = expected_len;
+
+                        // Validate message size
+                        if (CONNECTIVITY_bValidateDataLength(g_receivedMessage.msg_type, g_receivedMessage.data_len)) {
+                            CONNECTIVITY_voidReceiveHandleMessage(&g_receivedMessage);
+                            CONNECTIVITY_voidCallback(&g_receivedMessage);
+                        } else {
+                            error = 1;
+                            Connectivity_voidResend(msg_type);
+                        }
+
+                        uart_state = STATE_WAIT_TYPE;
+                    }
+                    break;
+
+                default:
+                    uart_state = STATE_WAIT_TYPE;
+                    break;
             }
         }
     }
 
     if (status & (UART_INT_OE | UART_INT_FE | UART_INT_PE)) {
         UARTIntClear(UART1_BASE, status);
+        error = 1;
     }
+
     if (error) {
-        Connectivity_voidRequestVerifiers();
+        error = 0;
+        uart_state = STATE_WAIT_TYPE;
     }
-    
+}
+
+
+
+
+/**
+ * @brief Validate received data length against specs
+ * @param Copy_enuMsgType Received msg type
+ * @param Copy_u16DataLength Data length
+ * @return true or false
+ */
+static bool CONNECTIVITY_bValidateDataLength(CONNECTIVITY_tenuVehicleMsgType Copy_enuMsgType, uint16_t Copy_u16DataLength){
+    bool Loc_bValidLength;
+    switch (Copy_enuMsgType) {
+        case MSG_TYPE_REQUEST_VERIFIERS:
+            Loc_bValidLength = (Copy_u16DataLength == APP_VEHICLE_VERIFIERS_SIZE) ? 1 : 0 ;
+            break;
+        case MSG_TYPE_PK_VEHICLE_CERTIFICATE:
+            Loc_bValidLength = (Copy_u16DataLength == APP_VEHICLE_PK_CERTIFICATE_SIZE) ? 1 : 0 ;
+            break;
+        default:
+            break;
+    }
+    return Loc_bValidLength;
 }
 
 /**
@@ -116,8 +170,6 @@ void UART1_Handler(void) {
  */
 static void CONNECTIVITY_voidReceiveHandleMessage(CONNECTIVITY_tstructMsgHandle * Add_u8MsgReceived) {
     uint8_t index = 0;
-
-    Add_u8MsgReceived->msg_type = (CONNECTIVITY_tenuVehicleMsgType)Add_u8MsgReceived->data[index++];
 
     switch (Add_u8MsgReceived->msg_type) {
         case MSG_TYPE_VEHICLE_STATE:
@@ -133,12 +185,7 @@ static void CONNECTIVITY_voidReceiveHandleMessage(CONNECTIVITY_tstructMsgHandle 
             break;
 
         case MSG_TYPE_REQUEST_VERIFIERS:
-            if(Add_u8MsgReceived->data_len == APP_VEHICLE_VERIFIERS_SIZE){
-                memcpy((uint8_t*)(&Global_u8VehicleInfo.verifiers), &(Add_u8MsgReceived->data[1]), Add_u8MsgReceived->data_len);
-            }
-            else {
-                Connectivity_voidRequestVerifiers();
-            }
+            memcpy((uint8_t*)(&Global_u8VehicleInfo.verifiers), (Add_u8MsgReceived->data), Add_u8MsgReceived->data_len);
             break;
     
 
@@ -164,39 +211,54 @@ static void CONNECTIVITY_voidCallback(CONNECTIVITY_tstructMsgHandle *msg) {
     }
 }
 
+
+CONNECTIVITY_tstructMsgHandle g_sendMessage;
+
 /**
  * @brief Constructs and sends a structured UART message based on the message type.
  * 
  * @param msg Pointer to the message handle structure containing the data to send.
  */
-static void CONNECTIVITY_voidSendHandleMessage(CONNECTIVITY_tstructMsgHandle *msg) {
-    uint8_t buffer[200];
-    uint8_t index = 0;
-    uint16_t len = APP_VEHICLE_PK_CERTIFICATE_SIZE;
+static void CONNECTIVITY_voidSendHandleMessage(void) {
+    // Shift the existing payload to make room for the header
+    // Safe because MAX_BUFFER_SIZE is large enough
+    memmove(&g_sendMessage.data[3], g_sendMessage.data, g_sendMessage.data_len);
 
-    buffer[index++] = CONNECTIVITY_START_BYTE;
-    buffer[index++] = msg->msg_type;
+    // Insert header
+    g_sendMessage.data[0] = (uint8_t)g_sendMessage.msg_type;
+    g_sendMessage.data[1] = (uint8_t)(g_sendMessage.data_len & 0xFF);       // Length LSB
+    g_sendMessage.data[2] = (uint8_t)((g_sendMessage.data_len >> 8) & 0xFF); // Length MSB
 
-    switch (msg->msg_type) {
+    // Send full message: 3 (header) + data_len
+    uint16_t total_len = g_sendMessage.data_len + 3;
+    UART_SendHexConnectivity(g_sendMessage.data, total_len);
+
+    // Reset structure for next use
+    g_sendMessage.msg_type = (CONNECTIVITY_tenuVehicleMsgType) 0;
+    g_sendMessage.data_len = 0;
+    memset(g_sendMessage.data, 0, MAX_BUFFER_SIZE);
+}
+
+/**
+ * @brief Sends a resend request for the vehicle's verifier [not requesting from server].
+ * @usage When there is error in transmitting data from connectivity to fusion through UART         
+ */
+static void Connectivity_voidResend(CONNECTIVITY_tenuVehicleMsgType Copy_enuMsgType) {
+    CONNECTIVITY_tenuVehicleMsgType Loc_enuMsgType;
+    switch (Copy_enuMsgType) {
+        case MSG_TYPE_REQUEST_VERIFIERS:
+            Loc_enuMsgType =  MSG_TYPE_RESEND_VERIFIERS;
+            break;
         case MSG_TYPE_PK_VEHICLE_CERTIFICATE:
-            memcpy(&buffer[index], msg->data, APP_VEHICLE_PK_CERTIFICATE_SIZE);
-            index += len;
+            Loc_enuMsgType = MSG_TYPE_RESEND_CERTIFICATE ;
             break;
-
-        case MSG_TYPE_VEHICLE_STATE:
-            buffer[index++] = Global_u8VehicleInfo.states.engineState;
-            buffer[index++] = Global_u8VehicleInfo.states.batteryLevel;
-            buffer[index++] = Global_u8VehicleInfo.states.doorsLocked;
-            buffer[index++] = Global_u8VehicleInfo.states.acState;
-            buffer[index++] = Global_u8VehicleInfo.states.tirePSI;
-            break;
-
         default:
             break;
     }
+    
+    g_sendMessage.msg_type = Loc_enuMsgType;
 
-    buffer[index] = CONNECTIVITY_END_BYTE;
-    UART_SendHexConnectivity(buffer, index);
+    CONNECTIVITY_voidSendHandleMessage();
 }
 
 /**
@@ -205,29 +267,34 @@ static void CONNECTIVITY_voidSendHandleMessage(CONNECTIVITY_tstructMsgHandle *ms
  * @param message Pointer to the message structure to send.
  */
 static void CONNECTIVITY_voidSendData(CONNECTIVITY_tstructMsgHandle *message) {
-    CONNECTIVITY_voidSendHandleMessage(message);
+    CONNECTIVITY_voidSendHandleMessage();
 }
 
 /*==================== PUBLIC FUNCTION IMPLEMENTATIONS ====================*/
 /**
- * @brief Sends a request message for the vehicle's certificate.
+ * @brief Sends a request message for the vehicle's verifiers.
  */
 void Connectivity_voidRequestVerifiers(void) {
-    CONNECTIVITY_tstructMsgHandle Loc_structRequestVerifierConfig = {
-        .msg_type = MSG_TYPE_REQUEST_VERIFIERS,
-    };
-    CONNECTIVITY_voidSendHandleMessage(&Loc_structRequestVerifierConfig);
+    g_sendMessage.msg_type = MSG_TYPE_REQUEST_VERIFIERS;
+    g_sendMessage.data_len = 0;
+    CONNECTIVITY_voidSendHandleMessage();
 }
 
 /**
  * @brief Sends a request message to the server for the vehicle's certificate.
  */
+
 void Connectivity_voidRequestCertificate(void) {
-    CONNECTIVITY_tstructMsgHandle Loc_structRequestCertificateConfig = {
-        .msg_type = MSG_TYPE_PK_VEHICLE_CERTIFICATE,
-        .data_len = strlen((const char*)Global_u8VehicleInfo.vehiclePublicKey)
-    };
-    uint16_t len = Loc_structRequestCertificateConfig.data_len;
-    memcpy(Loc_structRequestCertificateConfig.data, Global_u8VehicleInfo.vehiclePublicKey, len);
-    CONNECTIVITY_voidSendHandleMessage(&Loc_structRequestCertificateConfig);
+    uint16_t len = strlen((const char*)Global_u8VehicleInfo.vehiclePublicKey);
+
+    g_sendMessage.msg_type = MSG_TYPE_PK_VEHICLE_CERTIFICATE;
+    g_sendMessage.data_len = len;
+
+    // Copy payload into the start of g_sendMessage.data (we'll shift it in the send function)
+    memcpy(g_sendMessage.data, Global_u8VehicleInfo.vehiclePublicKey, len);
+
+    // Send the message using the updated send logic
+    CONNECTIVITY_voidSendHandleMessage();
 }
+
+

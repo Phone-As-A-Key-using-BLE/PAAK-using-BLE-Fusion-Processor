@@ -26,7 +26,7 @@
 extern uint8_t Global_u8CurrentNvmIndex;
 extern APP_tenuStates currentState;
 extern APP_tenuRangingType Global_u8DevicesRangingType[APP_MAX_NO_OF_DEVICES];
-extern char gArr_DebugMsg[1024];     // Buffer for formatted print output
+extern char gArr_DebugMsg[APP_DEBUG_ARRAY_MAX_SIZE];     // Buffer for formatted print output
 const char* CAN_CommandStrings[] = {
     "CAN_COMMAND_TRIGGER_OWNER_PAIRING",
     "CAN_COMMAND_TRIGGER_PASSIVE_ENTRY",

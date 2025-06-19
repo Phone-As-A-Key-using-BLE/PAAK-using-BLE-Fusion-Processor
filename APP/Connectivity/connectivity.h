@@ -24,7 +24,7 @@
 #define CONNECTIVITY_START_BYTE     0x0F       // Start byte for UART framing
 #define CONNECTIVITY_END_BYTE       0xFF       // End byte for UART framing
 #define CONNECTIVITY_ACK_BYTE       0xAA       // Acknowledgement byte
-#define MAX_BUFFER_SIZE             256        // Max UART payload size
+#define MAX_BUFFER_SIZE             190
 
 /******************************************************************************/
 /*                                  Enums                                     */
@@ -34,6 +34,8 @@
 typedef enum {
     MSG_TYPE_REQUEST_VERIFIERS,         // Request Verifiers
     MSG_TYPE_PK_VEHICLE_CERTIFICATE,    // Certificate/public key exchange
+    MSG_TYPE_RESEND_VERIFIERS,
+    MSG_TYPE_RESEND_CERTIFICATE,
     MSG_TYPE_VEHICLE_STATE,             // State update from vehicle
     MSG_TYPE_ALERT,                     // Alert notification
     MSG_TYPE_COMMAND                    // Command execution
