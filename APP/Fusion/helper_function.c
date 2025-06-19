@@ -1,67 +1,77 @@
-#include "helper_function.h"
+/**
+ * @file helper_function.c
+ * @brief Implementation of helper functions including random number generation.
+ *
+ * This file contains functions for generating random numbers, including a linear congruential generator,
+ * normal distribution generator using the Box-Muller transform, and a function for generating random numbers in a range.
+ * 
+ * @author Anas Hamed
+ * @date [3/2/2025] d/m/y
+ */
 
-/***********GLOBAL VAR************/
-int FIRST_TIME = 1;
+ #include "helper_function.h"
 
-
-// Your custom RNG and srand_custom implementation
-static unsigned int rand_seed = 0;  // Initial seed
-
-unsigned int simple_rand(void) {
-    rand_seed = (rand_seed * 1103515245 + 12345) % (1 << 31);  // LCG formula
-    return rand_seed % (RAND_MAX + 1);  // Ensure range is 0 to RAND_MAX
-}
-
-void srand_custom(unsigned int seed) {
-    rand_seed = seed;  // Initialize the seed
-}
-
-
-//the range [mean - 3 × stddev, mean + 3 × stddev]
-float32 generate_normal_random(float32 mean, float32 stddev) {
-    if(FIRST_TIME){
-        srand_custom(0);
-            FIRST_TIME = 0;
-    }
-    float32 u = ((float32)simple_rand() / (RAND_MAX)) * 2 - 1; // rand value [-1,1]
-    float32 v = ((float32)simple_rand() / (RAND_MAX)) * 2 - 1; // rand value [-1,1]
-    float32 s = u * u + v * v;
-    while (s >= 1 || s == 0) {
-        u = ((float32)simple_rand() / (RAND_MAX)) * 2 - 1;
-        v = ((float32)simple_rand() / (RAND_MAX)) * 2 - 1;
-        s = u * u + v * v;
-    }
-    float32 mul = sqrt(-2.0 * log(s) / s); // Box-Muller Transform
-    return mean + stddev * u * mul;
-}
-
-
-uint32 rand_double_range(uint32 min, uint32 max) {
-    return min + (simple_rand() / (RAND_MAX / (max - min)));
-}
-
-
-
-//memic third anchor disrance measuerement
-
-double calculate_y(double d1, double d2) {
-    return (d2*d2 - d1*d1) / 4.0;
-}
-
-void calculate_x(double d1, double d2, double* x1, double* x2) {
-    double temp = (d2*d2 - d1*d1)/4.0 - 1;
-    double sqrt_val = sqrt(d1*d1 - temp*temp);
-    *x1 = 2.0 + sqrt_val;
-    *x2 = 2.0 - sqrt(d1*d1 - pow(((d2*d2 - d1*d1)/4.0 - 1), 2));
-}
-
-double select_correct_x(double x1, double x2) {
-    // Always select larger x for right-side constraint
-    return (x1 > x2) ? x1 : x2;
-}
-
-double simulate_anchor3_distance(double x, double y) {
-    return sqrt(pow(x + 2, 2) + y*y);
-}
-
-
+ 
+ /*********** GLOBAL VARIABLES ************/
+ int FIRST_TIME = 1;  /**< Flag to initialize the random seed only once. */
+ 
+ /**
+  * @brief Custom seed for the random number generator.
+  */
+ static unsigned int rand_seed = 0;
+ 
+ /**
+  * @brief Generates a pseudo-random number using a Linear Congruential Generator (LCG).
+  *
+  * @return A pseudo-random unsigned integer.
+  */
+ unsigned int simple_rand(void) {
+     rand_seed = (rand_seed * 1103515245 + 12345) % (1 << 31);
+     return rand_seed % (RAND_MAX + 1);
+ }
+ 
+ /**
+  * @brief Seeds the custom random number generator.
+  *
+  * @param seed The seed value for the random number generator.
+  */
+ void srand_custom(unsigned int seed) {
+     rand_seed = seed;
+ }
+ 
+ /**
+  * @brief Generates a normally distributed random number using the Box-Muller transform.
+  *
+  * The generated number falls within the range [mean - 3 * stddev, mean + 3 * stddev].
+  *
+  * @param mean The mean value of the distribution.
+  * @param stddev The standard deviation of the distribution.
+  * @return A normally distributed floating-point number.
+  */
+ float32 generate_normal_random(float32 mean, float32 stddev) {
+     if (FIRST_TIME) {
+         srand_custom(0);
+         FIRST_TIME = 0;
+     }
+     float32 u, v, s;
+     do {
+         u = ((float32)simple_rand() / (RAND_MAX)) * 2 - 1;
+         v = ((float32)simple_rand() / (RAND_MAX)) * 2 - 1;
+         s = u * u + v * v;
+     } while (s >= 1 || s == 0);
+     
+     float32 mul = sqrt(-2.0 * log(s) / s); // Box-Muller Transform
+     return mean + stddev * u * mul;
+ }
+ 
+ /**
+  * @brief Generates a random integer within a specified range.
+  *
+  * @param min The minimum value of the range (inclusive).
+  * @param max The maximum value of the range (exclusive).
+  * @return A randomly generated integer within the specified range.
+  */
+ uint32 rand_double_range(uint32 min, uint32 max) {
+     return min + (simple_rand() / (RAND_MAX / (max - min)));
+ }
+ 
