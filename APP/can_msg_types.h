@@ -2,7 +2,7 @@
  * can_msg_types.h
  *
  *  Created on: Mar 26, 2024
- *      Author: Ali and Hamid
+ *      Author: Ali and Hamid and Waleed
  */
 
 #ifndef CAN_MSG_TYPES_H_
@@ -16,6 +16,14 @@
 #include "CAN_App.h"
 #include <stdint.h>
 #include <stdio.h>
+
+
+#define CAN_ID_KEEP_ALIVE_A1 0x101
+#define CAN_ID_KEEP_ALIVE_A2 0x102
+#define CAN_ID_KEEP_ALIVE_A3 0x103
+
+
+
 #if (CAN_ANCHOR_ID == CAN_MASTER_NODE)
 /*! Bluetooth Identity Address - array of 6 bytes. */
 typedef struct
