@@ -31,8 +31,8 @@ enum {
     CAN_ID_RSSI_A1,                         // 0x10B
     CAN_ID_RSSI_A2,                         // 0x10C
     CAN_ID_RSSI_A3,                         // 0x10D
-    CAN_ID_CERTIFICATE,                     
-    CAN_ID_VERIFIERS                        // 0x111
+    CAN_ID_CERTIFICATE,                     // 0x10E
+    CAN_ID_VERIFIERS,                       // 0x10F
 };
 
 #endif /* CAN_APP_H_ */

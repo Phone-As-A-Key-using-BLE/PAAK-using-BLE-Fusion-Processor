@@ -1,6 +1,8 @@
 #include "pushbuttons.h"
 #include "APP/APP_FSM.h"
 #include <stdint.h>
+#include "can_msg_types.h"
+#include "CAN_App.h"
 
 volatile bool buttonPressed = false;
 extern APP_tenuStates currentState;
@@ -53,7 +55,7 @@ void PushButtonHandler(void) {
     if (status & BUTTON_SW2) {
         // SW2 (PF0) pressed
         LED_ON(LED_RED);
-        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_ADV, CAN_PRIMARY_ANCHOR, 0);
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_FRIEND_ADVERTISING, CAN_PRIMARY_ANCHOR, 0);
         buttonPressed = true;
     }
 }
