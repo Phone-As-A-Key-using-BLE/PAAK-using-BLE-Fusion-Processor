@@ -47,6 +47,7 @@ void APP_voidSystemInit(){
     TimerDriver_Init();
     DeviceStateManager_Init();
     APP_voidInitRangingTypes();
+    currentState = STATE_START_FSM;
 }
 
 void APP_voidCommandsHandler(){

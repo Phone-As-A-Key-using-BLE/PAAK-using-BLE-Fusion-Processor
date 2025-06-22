@@ -55,6 +55,7 @@ void PushButtonHandler(void) {
     if (status & BUTTON_SW2) {
         // SW2 (PF0) pressed
         LED_ON(LED_RED);
+        currentState = STATE_WAITING_FOR_BONDING_DATA;
         CAN_voidSendCommand(CAN_COMMAND_TRIGGER_FRIEND_ADVERTISING, CAN_PRIMARY_ANCHOR, 0);
         buttonPressed = true;
     }

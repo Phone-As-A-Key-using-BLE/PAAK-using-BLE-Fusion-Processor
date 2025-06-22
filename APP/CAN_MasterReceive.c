@@ -269,8 +269,7 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
         }
         if(Global_u8IgnoreResponse != CAN_ANCHOR_1){
             Global_u8IgnoreResponse = 0;
-            if(currentState == STATE_IDLE){
-                currentState = STATE_START_CS_STATE;
+            if (currentState == STATE_START_FSM) {
                 Global_u8SendPE = 1;
                 break;
             }
