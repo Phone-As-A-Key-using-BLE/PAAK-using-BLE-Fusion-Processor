@@ -636,7 +636,7 @@ static void FSM_voidHandleFusionAlgo(APP_tenuEvents Copy_enuEvent, uint8_t Copy_
         //         "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", 
         //         Loc_strMeasureA.x, Loc_strMeasureA.y);
         // UART_SendMessage(gArr_DebugMsg);
-        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "location : (%.2f,%.2f)\r\n", Loc_strMeasureA.x, Loc_strMeasureA.y);    
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "location : (%.2f,%.2f)\r\n", 5.0*Loc_strMeasureA.x, 5.0*Loc_strMeasureA.y);    
         UART_SendMessage(gArr_DebugMsg);
 
         /* Particle filter implementation (commented out for performance) */
