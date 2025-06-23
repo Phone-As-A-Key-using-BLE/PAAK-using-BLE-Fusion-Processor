@@ -98,6 +98,7 @@ static void FSM_voidLogAnchorMessage(const char* Copy_pchLevel, const char* Copy
 static void FSM_voidHandleIdleState(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleTriggerOwnerPairing(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleWaitingForVerifiers(APP_tenuEvents Copy_enuEvent);
+static void FSM_voidHandleFriendSharing(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleWaitingForBondingData(APP_tenuEvents Copy_enuEvent);
 static void FSM_voidHandleWaitingForPrimaryWakeup(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
 static void FSM_voidHandleCSPrimaryPE(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId);
@@ -184,9 +185,12 @@ void FSM_voidHandleHandoverTimeout(uint8_t Copy_u8DeviceId) {
     else if(Global_u8DevicesRangingType[Copy_u8DeviceId] == APP_RSSI){
         Loc_u8DeviceToDisconnect = Global_u8CurrentAnchor;
     }   
-    TimerDriver_Start(TIMEOUT_DISCONNECT, ERR_voidDisconnectTimeOutHandler);
+    //TimerDriver_Start(TIMEOUT_DISCONNECT, ERR_voidDisconnectTimeOutHandler);
     /* Disconnect to prevent stuck CS context */
-    CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Loc_u8DeviceToDisconnect, Copy_u8DeviceId);
+    // CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Loc_u8DeviceToDisconnect, Copy_u8DeviceId);
+    Global_u8IgnoreResponse = Loc_u8DeviceToDisconnect;
+    CAN_voidSendCommand(CAN_COMMAND_RESET, Loc_u8DeviceToDisconnect, Copy_u8DeviceId);
+    Global_u8SendPE = 1;
 }
 
 /**
@@ -226,7 +230,7 @@ static void FSM_voidHandleIdleState(APP_tenuEvents Copy_enuEvent) {
     if (Copy_enuEvent == EVENT_OWNER_PAIRING_BUTTON_PRESSED) {
         UART_SendMessage("\n[INFO] Owner pairing button pressed. Factory reset all anchors...\n");
         currentState = STATE_TRIGGER_OWNER_PAIRING;
-        CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_RESET_ALL, 0);
+        CAN_voidSendCommand(CAN_COMMAND_FACTORY_RESET, CAN_RESET_ALL, 0);
     }
 }
 
@@ -275,6 +279,19 @@ static void FSM_voidHandleWaitingForPkCertificate(APP_tenuEvents Copy_enuEvent){
     }
 }
 
+static void FSM_voidHandleFriendSharing(APP_tenuEvents Copy_enuEvent){
+    if (Copy_enuEvent == EVENT_PRIMARY_WAKEUP_RECEIVED) {
+        /* Initialize pairing process */
+        Global_u8CurrentAnchor = CAN_PRIMARY_ANCHOR;
+        Global_u8NoOfDistances = 0;
+        Global_u8FirstTime = 1;
+        Global_u8PERetryCount = 0;
+        
+        currentState = STATE_WAITING_FOR_BONDING_DATA;
+        UART_SendMessage("\n[SUCCESS] Primary anchor wakeup received. Start friend sharing...\n");
+        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_FRIEND_ADVERTISING, CAN_PRIMARY_ANCHOR, 0);
+    }
+}
 
 /**
  * @brief Handle waiting for bonding data state
@@ -506,6 +523,7 @@ static void FSM_voidHandleDistanceMeasurementProcessing(APP_tenuEvents Copy_enuE
         case EVENT_PRIMARY_WAKEUP_RECEIVED:
         case EVENT_SECONDARY_WAKEUP_RECEIVED:
             FSM_voidHandleHandoverTimeout(Copy_u8DeviceId);
+            //Global_u8SendPE = 1;
             break;
         
         case EVENT_PRIMARY_PE_SUCCESSFUL:
@@ -614,9 +632,11 @@ static void FSM_voidHandleFusionAlgo(APP_tenuEvents Copy_enuEvent, uint8_t Copy_
         /* Execute trilateration algorithm */
         Loc_strMeasureA = Master_trilaterate_position(Loc_astrTestObj);
 
-        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
-                "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", 
-                Loc_strMeasureA.x, Loc_strMeasureA.y);
+        // snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
+        //         "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", 
+        //         Loc_strMeasureA.x, Loc_strMeasureA.y);
+        // UART_SendMessage(gArr_DebugMsg);
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), "location : (%.2f,%.2f)\r\n", Loc_strMeasureA.x, Loc_strMeasureA.y);    
         UART_SendMessage(gArr_DebugMsg);
 
         /* Particle filter implementation (commented out for performance) */
@@ -704,6 +724,10 @@ void APP_voidFSMHandler(APP_tenuEvents Copy_enuEvent, uint8_t Copy_u8DeviceId) {
 
         case STATE_WAITING_FOR_PK_CERTIFICATE:
             FSM_voidHandleWaitingForPkCertificate(Copy_enuEvent);
+            break;
+
+        case STATE_TRIGGER_FRIEND_SHARING:
+            FSM_voidHandleFriendSharing(Copy_enuEvent);
             break;
         
         case STATE_WAITING_FOR_BONDING_DATA:

@@ -6,7 +6,7 @@
 #define CAN_ANCHOR_1        1
 #define CAN_ANCHOR_2        2
 #define CAN_ANCHOR_3        3
-#define CAN_ANCHOR_MAX      2
+#define CAN_ANCHOR_MAX      3
 
 /* Configuration */
 #define CAN_ANCHOR_ID       CAN_MASTER_NODE

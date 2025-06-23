@@ -14,7 +14,7 @@ extern uint8_t Global_u8CurrentDeviceId;
 extern uint8_t currentState;
 extern uint8_t Global_u8CurrentAnchor;
 extern uint8_t Global_u8ResetAndPE;
-extern uint8_t isResetNeeded;
+extern uint8_t Global_u8IgnoreResponse;
 void ERR_voidTdmTimeoutHandler(){
     TimerDriver_Stop();
     UART_SendMessage("\nTimer Timeout: TDM\n");
@@ -23,7 +23,8 @@ void ERR_voidTdmTimeoutHandler(){
 void ERR_voidHandoverTimeoutHandler(){
     TimerDriver_Stop();
     UART_SendMessage("\nTimer Timeout: Handover\n");
-    CAN_voidSendCommand(CAN_COMMAND_DISCONNECT_FROM_DEVICE, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
+    //Global_u8IgnoreResponse = Global_u8CurrentAnchor;
+    CAN_voidSendCommand(CAN_COMMAND_RESET, Global_u8CurrentAnchor, Global_u8CurrentDeviceId);
 }
 
 void ERR_voidDisconnectTimeOutHandler(){

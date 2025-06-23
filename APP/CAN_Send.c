@@ -36,7 +36,8 @@ const char* CAN_CommandStrings[] = {
     "CAN_COMMAND_INVALID",
     "CAN_COMMMAND_DISCONNECT_FROM_DEVICE",
     "CAN_COMMAND_HANDOVER",
-    "CAN_COMMAND_FACTORY_RESET"
+    "CAN_COMMAND_FACTORY_RESET",
+    
 };
 
 /* CAN_voidSendBondingData

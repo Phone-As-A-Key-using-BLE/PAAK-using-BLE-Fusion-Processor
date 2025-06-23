@@ -92,9 +92,9 @@
       * @brief Anchor coordinates used in the trilateration calculation.
       */
      Measurement anchorCoordinates[NUM_OF_ANCHORS] = {
-            {0.7, -0.4},   /**< First Node coordinates */
-            {-0.7, 0},     /**< Second anchor coordinates */
-            {0.7, 0.4}     /**< Third anchor coordinates */
+            {-0.75, -0.4},   /**< First Node coordinates */
+            {0.75, -0.4},     /**< Second anchor coordinates */
+            {0, 0.9}     /**< Third anchor coordinates */
      };
  
      // Construct matrices A and B

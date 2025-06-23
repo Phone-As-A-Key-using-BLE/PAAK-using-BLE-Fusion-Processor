@@ -2,8 +2,6 @@
 #include "APP/APP_FSM.h"
 #include <stdint.h>
 #include "can_msg_types.h"
-#include "CAN_App.h"
-
 volatile bool buttonPressed = false;
 extern APP_tenuStates currentState;
 extern uint8_t isBondingDataReceived;
@@ -55,8 +53,8 @@ void PushButtonHandler(void) {
     if (status & BUTTON_SW2) {
         // SW2 (PF0) pressed
         LED_ON(LED_RED);
-        currentState = STATE_WAITING_FOR_BONDING_DATA;
-        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_FRIEND_ADVERTISING, CAN_PRIMARY_ANCHOR, 0);
+        currentState = STATE_TRIGGER_FRIEND_SHARING;
+        CAN_voidSendCommand(CAN_COMMAND_RESET, CAN_RESET_ALL, 0);
         buttonPressed = true;
     }
 }
