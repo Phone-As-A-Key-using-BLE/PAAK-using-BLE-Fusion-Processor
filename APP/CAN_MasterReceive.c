@@ -28,6 +28,7 @@ static CAN_tstrCommandData s_commandData        = {CAN_COMMAND_INVALID, 0};
 static add_device          s_addDeviceData      = {0};
 static remove_device_t     s_removeDeviceData   = {0};
 static uint8_t             s_bondingDataCounter = 0;
+static uint8_t ownerPublicKeyBuffer[OWNER_PK_TOTAL_SIZE];
 
 /* Global variables ----------------------------------------------------------*/
 uint8_t gNextAnchorId = 0;
@@ -59,6 +60,7 @@ double_t Global_f64DistanceReadings[APP_MAX_NO_OF_DEVICES][CAN_ANCHOR_MAX+1] = {
  * ---------------------------------------------------------------------------*/
 static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
 static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
+static void storeOwnerPK(const tCANMsgObject* pRxMsg, const uint8_t* rxData);
 static void parseRssiData(uint32_t messageId, const uint8_t* rxData);
 
 /* ---------------------------------------------------------------------------
@@ -114,8 +116,11 @@ void CAN_voidParseReceivedFrame(const tCANMsgObject* pRxMsg, const uint8_t* rxDa
     {
         case CAN_ID_BONDING_DATA:
             if(currentState == STATE_WAITING_FOR_BONDING_DATA)
-                parseBondingData(pRxMsg, rxData);
-        
+                parseBondingData(pRxMsg, rxData);       
+            break;
+
+        case CAN_ID_OWNER_PK:
+            storeOwnerPK(pRxMsg, rxData);
             break;
 
         /* Distance messages ---------------------------------------------- */
@@ -417,6 +422,7 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
             /* aIrk[8..15] */
             memcpy(&s_addDeviceData.aIrk[8], rxData, 8);
             UART_SendMessage ("Bonding data fully received.\r\n");
+            DeviceStateManager_StoreOwnerPk(ownerPublicKeyBuffer);
             APP_voidFSMHandler(EVENT_BONDING_DATA_RECEIVED, s_addDeviceData.nvmIndex);
             s_bondingDataCounter = 0;
             isBondingDataReceived=1;
@@ -430,7 +436,20 @@ static void parseBondingData(const tCANMsgObject* pRxMsg, const uint8_t* rxData)
 
     (void)pRxMsg; /* Suppress unused parameter warning if not needed otherwise */
 }
+static uint8_t currentPKFrame = 0;
+static void storeOwnerPK(const tCANMsgObject* pRxMsg, const uint8_t* rxData){
+    uint8_t offset = currentPKFrame * OWNER_PK_DATA_PER_FRAME;
+    uint8_t bytesToCopy = (currentPKFrame == OWNER_PK_TOTAL_FRAMES - 1) ?
+                          (OWNER_PK_TOTAL_SIZE - offset) : OWNER_PK_DATA_PER_FRAME;
 
+    memcpy(&ownerPublicKeyBuffer[offset], rxData, bytesToCopy);
+    currentPKFrame++;
+
+    if (currentPKFrame == OWNER_PK_TOTAL_FRAMES) {
+        // Entire key received successfully
+        currentPKFrame = 0;  // Reset for next transmission
+    }
+}
 /* ---------------------------------------------------------------------------
  * parseRssiData
  * ---------------------------------------------------------------------------*/

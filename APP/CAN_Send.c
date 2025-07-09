@@ -7,7 +7,7 @@
 /* Copyright: Sponsored by Ejad                                     */
 /********************************************************************/
 
-#include "DeviceRangingTypeManager.h"
+#include "DeviceStateManager.h"
 #include "CAN_App.h"
 #include "APP_FSM.h"
 #include <stdint.h>
@@ -27,17 +27,16 @@ extern uint8_t Global_u8CurrentNvmIndex;
 extern APP_tenuStates currentState;
 extern APP_tenuRangingType Global_u8DevicesRangingType[APP_MAX_NO_OF_DEVICES];
 extern char gArr_DebugMsg[APP_DEBUG_ARRAY_MAX_SIZE];     // Buffer for formatted print output
-const char* CAN_CommandStrings[] = {
-    "CAN_COMMAND_TRIGGER_OWNER_PAIRING",
-    "CAN_COMMAND_TRIGGER_PASSIVE_ENTRY",
-    "CAN_COMMAND_TRIGGER_DISTANCE_MEASURMENT",
-    "CAN_COMMAND_STOP_DISTANCE_MEASURMENT",
-    "CAN_COMMAND_RESET",
-    "CAN_COMMAND_INVALID",
-    "CAN_COMMMAND_DISCONNECT_FROM_DEVICE",
-    "CAN_COMMAND_HANDOVER",
-    "CAN_COMMAND_FACTORY_RESET",
-    
+const char* const CAN_CommandStrings[] = {
+    "OP",
+    "PE",
+    "TDM",
+    "Stop TDM",
+    "RESET",
+    "INVALID",
+    "DISCONNECT",
+    "HANDOVER",
+    "FACTORY_RESET",
 };
 
 /* CAN_voidSendBondingData
@@ -171,7 +170,7 @@ void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Hando
     UART_SendMessage("============================\n");
 
     snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),
-            "[INFO] Command Sent :\n - Command Name: CAN_COMMAND_HANDOVER\n  - Handover from : Anchor %d\n  - Handover to : Anchor %d\n - Device Id: %d\n - Ranging Type: %d\n", Copy_u8ReceiverId, Copy_u8HandoverTo,
+            "[INFO] Command Sent :\n - Command Name: HANDOVER\n  - Handover from : Anchor %d\n  - Handover to : Anchor %d\n - Device Id: %d\n - Ranging Type: %d\n", Copy_u8ReceiverId, Copy_u8HandoverTo,
             Copy_u8deviceId,loc_u8CanData[4]);
 
     UART_SendMessage(gArr_DebugMsg);
@@ -244,8 +243,6 @@ void CAN_voidSendNextVerifierFrame(void) {
     CAN_voidSendMsg(CAN_ID_VERIFIERS, frameData);
 }
 
-
-
 void CAN_voidSendPkCertificate() {
     uint8_t* rawData = (uint8_t*)&Global_u8VehicleInfo.vehiclePublicKeyCeritificate;
     uint8_t frameData[8];
@@ -262,3 +259,19 @@ void CAN_voidSendPkCertificate() {
     CAN_voidSendMsg(CAN_ID_CERTIFICATE, frameData);
 }
 
+void CAN_voidStartFriendSharing(){
+    uint8_t OwnerPk[65];
+    DeviceStateManager_LoadOwnerPk(OwnerPk);
+    uint8_t i=0, j=0;
+    uint8_t loc_u8CanData[8] = {0}; // Local array to store CAN message data
+    
+    for (i = 0; i < 64 / 8; i++){
+        for (j = 0; j < 8; j++){
+            loc_u8CanData[j] = OwnerPk[i * 8 + j];
+        }
+        CAN_voidSendMsg(CAN_ID_START_FRIEND_SHARING, loc_u8CanData);
+        SysCtlDelay(5000);
+    }
+    loc_u8CanData[j] = OwnerPk[64];
+    CAN_voidSendMsg(CAN_ID_START_FRIEND_SHARING, loc_u8CanData);
+}

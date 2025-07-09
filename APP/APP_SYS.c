@@ -6,7 +6,7 @@
 #include "LED/led.h"
 #include "GPIO/gpio.h"
 #include "PUSHBUTTON/pushbuttons.h"
-#include "DeviceRangingTypeManager.h"
+#include "DeviceStateManager.h"
 #include "Timer.h"
 #include "can_msg_types.h"
 #include "CAN_Send.h"

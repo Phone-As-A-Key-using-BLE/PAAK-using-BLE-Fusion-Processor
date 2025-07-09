@@ -5,7 +5,7 @@
 #include "APP/can_msg_types.h"
 #include "APP/CAN_Send.h"
 #include "APP/CAN_MasterReceive.h"
-#include "DeviceRangingTypeManager.h"
+#include "DeviceStateManager.h"
 #include "APP/CAN_App.h"
 #include "APP/APP_FSM.h"
 #include "APP/Timer.h"

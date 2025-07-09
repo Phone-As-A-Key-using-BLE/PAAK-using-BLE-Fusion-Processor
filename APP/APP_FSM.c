@@ -15,7 +15,7 @@
 #include "APP/can_msg_types.h"
 #include "APP/CAN_Send.h"
 #include "APP/CAN_MasterReceive.h"
-#include "DeviceRangingTypeManager.h"
+#include "DeviceStateManager.h"
 #include "APP/CAN_App.h"
 #include "APP/APP_FSM.h"
 #include "APP/Timer.h"
@@ -289,7 +289,7 @@ static void FSM_voidHandleFriendSharing(APP_tenuEvents Copy_enuEvent){
         
         currentState = STATE_WAITING_FOR_BONDING_DATA;
         UART_SendMessage("\n[SUCCESS] Primary anchor wakeup received. Start friend sharing...\n");
-        CAN_voidSendCommand(CAN_COMMAND_TRIGGER_FRIEND_ADVERTISING, CAN_PRIMARY_ANCHOR, 0);
+        CAN_voidStartFriendSharing();   
     }
 }
 

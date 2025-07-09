@@ -6,7 +6,7 @@
 #define CAN_ANCHOR_1        1
 #define CAN_ANCHOR_2        2
 #define CAN_ANCHOR_3        3
-#define CAN_ANCHOR_MAX      3
+#define CAN_ANCHOR_MAX      2
 
 /* Configuration */
 #define CAN_ANCHOR_ID       CAN_MASTER_NODE
@@ -18,6 +18,8 @@
 /* Incremental CAN IDs */
 enum {
     CAN_ID_BONDING_DATA = CAN_BASE_ID,      // 0x100
+    CAN_ID_OWNER_PK,
+    CAN_ID_START_FRIEND_SHARING,
     CAN_ID_COMMANDS,                        // 0x101
     CAN_ID_DISTANCE_TDM_A1,                 // 0x102
     CAN_ID_DISTANCE_TDM_A2,                 // 0x103

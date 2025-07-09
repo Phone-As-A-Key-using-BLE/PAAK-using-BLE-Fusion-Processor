@@ -20,6 +20,11 @@
 #include "can_msg_types.h"
 #include "CAN_App.h"
 
+
+#define OWNER_PK_TOTAL_SIZE     65
+#define OWNER_PK_DATA_PER_FRAME 8
+#define OWNER_PK_TOTAL_FRAMES   ((OWNER_PK_TOTAL_SIZE + OWNER_PK_DATA_PER_FRAME - 1) / OWNER_PK_DATA_PER_FRAME)
+
 // Structures to store parsed data
 typedef struct {
     uint8_t deviceId;

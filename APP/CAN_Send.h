@@ -44,27 +44,67 @@
 #define VERIFIER_FRAME_DATA_SIZE      7
 #define VERIFIER_LAST_FRAME_DATA_SIZE 5
 
-/* Function Prototypes */
+
+
+/*==============================*
+ *     Function Declarations    *
+ *==============================*/
 
 /**
- * @brief Sends commands over CAN bus, including receiver identifier.
- * 
- * @param Copy_enuCommand Command ID.
- * @param Copy_u8ReceiverId Receiver Identifier.
+ * @brief Sends bonding data over CAN bus, including device info and security keys.
+ *
+ * @param Copy_u8NvmId Non-volatile memory ID of the bonded device.
+ * @param gAppOutAuth Authentication flag.
+ * @param gAppOutLeSc LE Secure Connections flag.
+ * @param Add_structKeys Structure containing security keys.
+ */
+void CAN_voidSendBondingData(uint8_t Copy_u8NvmId, bool gAppOutAuth, bool gAppOutLeSc, gapSmpKeys_t Add_structKeys);
+
+/**
+ * @brief Sends command messages over CAN to a receiver.
+ *
+ * @param Copy_enuCommand Command type to send.
+ * @param Copy_u8ReceiverId ID of the receiving device.
+ * @param Copy_u8Data Device or anchor ID.
  */
 void CAN_voidSendCommand(CAN_tenumCommands Copy_enuCommand, uint8_t Copy_u8ReceiverId, uint8_t Copy_u8Data);
 
-void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8HandoverTo,uint8_t Copy_u8deviceId);
+/**
+ * @brief Sends a handover command specifying source and destination anchors.
+ *
+ * @param Copy_u8ReceiverId Anchor currently in control.
+ * @param Copy_u8HandoverTo Anchor to hand over to.
+ * @param Copy_u8deviceId ID of the device being handed over.
+ */
+void CAN_voidSendHandoverCommand(uint8_t Copy_u8ReceiverId, uint8_t Copy_u8HandoverTo, uint8_t Copy_u8deviceId);
 
 /**
- * @brief Sends ranging type of devices over CAN bus.
- * 
- * @param Add_enuRangingType Array of ranging types of devices
+ * @brief Sends a certificate over CAN in header + data frame format.
+ *
+ * @param Copy_u8Device Target device ID.
+ * @param Copy_u8CertificateType Type of certificate being sent.
+ * @param Copy_u16Size Size of certificate data in bytes.
+ * @param Add_u8Certificate Pointer to certificate data.
  */
-void CAN_voidSendRangingType(APP_tenuRangingType* Add_enuRangingType);
+void CAN_voidSendCertificate(uint8_t Copy_u8Device, uint8_t Copy_u8CertificateType, uint16_t Copy_u16Size, uint8_t * Add_u8Certificate);
 
-void CAN_voidSendVerifiers();
+/**
+ * @brief Starts sending verifier values over CAN using indexed frames.
+ */
+void CAN_voidSendVerifiers(void);
 
-void CAN_voidSendPkCertificate();
+/**
+ * @brief Sends the next frame of verifier data.
+ */
 void CAN_voidSendNextVerifierFrame(void);
+
+/**
+ * @brief Sends the public key certificate in 16 indexed CAN frames.
+ */
+void CAN_voidSendPkCertificate(void);
+
+/**
+ * @brief Starts sending the 65-byte Owner Public Key over CAN in 9 frames.
+ */
+void CAN_voidStartFriendSharing(void);
 #endif /* CAN_SEND_H_ */
