@@ -623,7 +623,7 @@ static void FSM_voidHandleFusionAlgo(APP_tenuEvents Copy_enuEvent, uint8_t Copy_
         Loc_strMeasureA = Master_trilaterate_position(Loc_astrTestObj);
 
         snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg), 
-                "\n[INFO] Location from Trilateration: (x = %.2f , y = %.2f)\n", 
+                "\nlocation : (%.2f,%.2f)\n", 
                 Loc_strMeasureA.x, Loc_strMeasureA.y);
         UART_SendMessage(gArr_DebugMsg);
 

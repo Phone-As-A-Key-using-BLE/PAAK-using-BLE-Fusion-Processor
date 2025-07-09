@@ -68,7 +68,7 @@ typedef enum {
 } AnchorTraversalDirection_t;
 
 #define APP_DISTANCE_TRIGGER_THRESHOLD      3
-#define APP_MINUMUM_DISTANCE_READINGS       2
+#define APP_MINUMUM_DISTANCE_READINGS       CAN_ANCHOR_MAX
 #define APP_CS_NO_OF_MEASURING_DISTANCE     1
 #define APP_MAX_NO_OF_DEVICES               4
 

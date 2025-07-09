@@ -355,7 +355,7 @@ static void parseDistanceData(const tCANMsgObject* pRxMsg, const uint8_t* rxData
     UART_SendMessage(gArr_DebugMsg);
 
     if(currentState == STATE_DISTANCE_MEASUREMENT_PROCESSING){
-        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),"Anchor %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, "CS", Loc_f64Distance);
+        snprintf(gArr_DebugMsg, sizeof(gArr_DebugMsg),"Anchor %d Device %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, s_distanceData.deviceId, "CS", Loc_f64Distance);
         UART_SendMessage (gArr_DebugMsg);
     }
 
@@ -456,7 +456,7 @@ static void parseRssiData(uint32_t messageId, const uint8_t* rxData)
     UART_SendMessage(gArr_DebugMsg);
 
     if(currentState == STATE_DISTANCE_MEASUREMENT_PROCESSING){
-        sprintf(gArr_DebugMsg,"Anchor %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, "RSSI", Loc_f64Distance);
+        sprintf(gArr_DebugMsg,"Anchor %d Device %d Distance %s: %.2f meter\r\n", Global_u8CurrentAnchor, Loc_u8DeviceId, "RSSI", Loc_f64Distance);
         UART_SendMessage(gArr_DebugMsg);
     }
     /* Trigger an event if needed */
